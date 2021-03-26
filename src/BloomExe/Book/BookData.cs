@@ -599,8 +599,15 @@ namespace Bloom.Book
 			}
 		}
 
+		// Precondition: form should be encoded already
+		//    If the key is in KeysOfVariablesThatAreUrlEncoded, then form should be URL-encoded.
+		//    Otherwise, by default, it should be encoded for HTML/XML.
 		private void SetNodeXml(string key, string form, XmlNode node)
 		{
+			if (key == "languageLocation")
+			{
+				Console.Out.WriteLine("Here i am");
+			}
 			if(KeysOfVariablesThatAreUrlEncoded.Contains(key))
 			{
 				// Reference: BL-3235
@@ -608,6 +615,10 @@ namespace Bloom.Book
 				form = UrlPathString.CreateFromUrlEncodedString(form).NotEncoded;	// want query as well as filepath
 				//switch to html/xml encoding
 				form = HttpUtility.HtmlEncode(form);
+			}
+			if (form.Contains("&"))
+			{
+				Console.Out.WriteLine("Here i am");
 			}
 			node.InnerXml = form;
 			if (node.Attributes["data-textonly"]?.Value == "true")
@@ -924,6 +935,9 @@ namespace Bloom.Book
 							added = true;
 						}
 
+						// So from what I conclude, value should be encoded, and so should text alternatives,
+						// and dsv can be concluded to contain all encoded values (encoded in some way or another)
+
 						if (added)
 						{
 							dsv.SetAttributeList(lang, GetAttributesToSave(node));
@@ -1048,6 +1062,10 @@ namespace Bloom.Book
 				foreach (XmlElement node in nodesOfInterest)
 				{
 					var key = node.GetAttribute("data-book").Trim();
+
+					if (key == "languageLocation") {
+						int x = 5;
+					}
 
 					if (key == string.Empty)
 					{
@@ -1218,7 +1236,8 @@ namespace Bloom.Book
 		/// </summary>
 		/// <param name="key"></param>
 		/// <param name="node"></param>
-		/// <param name="form"></param>
+		/// <param name="form">The encoded form.  If {key} is in KeysOfVariablesThatAreUrlEncoded, then {form} should be URL-encoded.
+		//    Otherwise, by default, {form} should be encoded for HTML/XML.</param>
 		private void SetInnerXmlPreservingLabel(string key, XmlElement node, string form)
 		{
 			var labelElement = node.SelectSingleNode("label");

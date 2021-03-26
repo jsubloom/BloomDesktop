@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Web;
 using SIL.Extensions;
 using SIL.Text;
 
@@ -42,7 +43,14 @@ namespace Bloom.Book
 			{
 				TextVariables.Remove(key);
 			}
+			//DataSetElementValues is supposed to contain all encoded text
+			// But... is value expected to be encoded????
 			TextVariables.Add(key, new DataSetElementValue(text, isCollectionValue));
+		}
+
+		public void UpdateGenericLanguageStringWithRaw(string key, string unencodedValue, bool isCollectionValue)
+		{
+			HttpUtility.HtmlEncode(unencodedValue);
 		}
 
 		public void UpdateLanguageString(string key,  string value, string writingSystemId,bool isCollectionValue)
