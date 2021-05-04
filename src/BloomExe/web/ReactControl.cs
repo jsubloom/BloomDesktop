@@ -24,6 +24,8 @@ namespace Bloom.web
 	{
 		private string _reactComponentName;
 		private string _urlQueryString;
+
+		private Browser _browser;
 		// props to provide to the react component
 		public object Props;
 
@@ -61,9 +63,35 @@ namespace Bloom.web
 			var tempFile = TempFile.WithExtension("htm");
 			tempFile.Detach(); // the browser control will clean it up
 
+			WriteTempHtmlFile(tempFile.Path);
+
+			// The Size setting is needed on Linux to keep the browser from coming up as a small
+			// rectangle in the upper left corner...
+			_browser = new Browser
+			{
+				Dock = DockStyle.Fill,
+				Location = new Point(3, 3),
+				Size = new Size(Width - 6, Height - 6),
+				BackColor = Color.White
+			};
+
+			var dummy = _browser.Handle; // gets the WebBrowser created
+
+			// If the control gets added before it has navigated somewhere,
+			// it shows as solid black, despite setting the BackColor to white.
+			// So just don't show it at all until it contains what we want to see.
+			_browser.WebBrowser.DocumentCompleted += (unused, args) =>
+			{
+				Controls.Add(_browser);
+			};
+			_browser.NavigateToTempFileThenRemoveIt(tempFile.Path, _urlQueryString);
+		}
+
+		private void WriteTempHtmlFile(string path)
+		{
 			var props = Props==null ? "{}":JsonConvert.SerializeObject(Props);
 
-			RobustFile.WriteAllText(tempFile.Path, $@"<!DOCTYPE html>
+			RobustFile.WriteAllText(path, $@"<!DOCTYPE html>
 				<html>
 				<head>
 					<meta charset = 'UTF-8' />
@@ -80,28 +108,18 @@ namespace Bloom.web
 					<div id='reactRoot' class='{_reactComponentName}'>Component should replace this</div>
 				</body>
 				</html>");
+		}
 
-
-			// The Size setting is needed on Linux to keep the browser from coming up as a small
-			// rectangle in the upper left corner...
-			var browser = new Browser
+		public void Navigate()
+		{
+			// May be null if not loaded yet.
+			if (_browser != null)
 			{
-				Dock = DockStyle.Fill,
-				Location = new Point(3, 3),
-				Size = new Size(Width - 6, Height - 6),
-				BackColor = Color.White
-			};
-
-			var dummy = browser.Handle; // gets the WebBrowser created
-
-			// If the control gets added before it has navigated somewhere,
-			// it shows as solid black, despite setting the BackColor to white.
-			// So just don't show it at all until it contains what we want to see.
-			browser.WebBrowser.DocumentCompleted += (unused, args) =>
-			{
-				Controls.Add(browser);
-			};
-			browser.NavigateToTempFileThenRemoveIt(tempFile.Path, _urlQueryString);
+				var tempFile = TempFile.WithExtension("htm");
+				tempFile.Detach(); // the browser control will clean it up
+				WriteTempHtmlFile(tempFile.Path);
+				_browser.NavigateToTempFileThenRemoveIt(tempFile.Path, _urlQueryString);
+			}
 		}
 	}
 }

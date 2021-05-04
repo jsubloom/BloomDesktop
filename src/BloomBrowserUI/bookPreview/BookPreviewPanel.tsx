@@ -21,9 +21,9 @@ export const BookPreviewPanel: React.FunctionComponent = props => {
         );
     }, [previewUrl]);
 
-    useWebSocketListenerForOneMessage("bookStatus", "changeBook", message =>
-        setPreviewUrl(message)
-    );
+    // useWebSocketListenerForOneMessage("bookStatus", "changeBook", message =>
+    //     setPreviewUrl(message)
+    // );
 
     return (
         <div>

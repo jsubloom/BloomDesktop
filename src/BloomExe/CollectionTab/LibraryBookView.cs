@@ -180,7 +180,9 @@ namespace Bloom.CollectionTab
 					XmlHtmlConverter.MakeXmlishTagsSafeForInterpretationAsHtml(previewDom.RawDom);
 					var fakeTempFile = BloomServer.MakeSimulatedPageFileInBookFolder(previewDom, setAsCurrentPageForDebugging: false, source: BloomServer.SimulatedPageFileSource.Preview);
 					_reactBookPreviewControl.UrlQueryString = $"?urlPreview={fakeTempFile.Key}";	// need this for initial selection
-					_webSocketServer.SendString("bookStatus", "changeBook", fakeTempFile.Key);	// need this for changing selection display
+					_reactBookPreviewControl.Navigate();
+					//_webSocketServer.SendString("bookStatus", "changeBook", fakeTempFile.Key);	// need this for changing selection display
+					// TODO: This functionality is needed in some way
 					_webSocketServer.SendEvent("bookStatus", "reload");	// need this for changing selection's book info display if team collection
 					_reactBookPreviewControl.Visible = true;
 					RecordAndCleanupFakeFiles(fakeTempFile);
