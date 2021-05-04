@@ -183,7 +183,7 @@ namespace Bloom.CollectionTab
 					_reactBookPreviewControl.Navigate();
 					//_webSocketServer.SendString("bookStatus", "changeBook", fakeTempFile.Key);	// need this for changing selection display
 					// TODO: This functionality is needed in some way
-					_webSocketServer.SendEvent("bookStatus", "reload");	// need this for changing selection's book info display if team collection
+					//_webSocketServer.SendEvent("bookStatus", "reload");	// need this for changing selection's book info display if team collection
 					_reactBookPreviewControl.Visible = true;
 					RecordAndCleanupFakeFiles(fakeTempFile);
 				}
