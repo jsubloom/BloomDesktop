@@ -32,7 +32,7 @@ namespace Bloom.CollectionTab
 		private bool _reshowPending = false;
 		private bool _visible;
 
-		private BloomWebSocketServer _webSocketServer;
+		//private BloomWebSocketServer _webSocketServer;
 
 		public TeamCollectionManager TeamCollectionMgr { get; internal set; }
 
@@ -52,7 +52,7 @@ namespace Bloom.CollectionTab
 			//_sendReceiver = sendReceiver;
 			_createFromSourceBookCommand = createFromSourceBookCommand;
 			_editBookCommand = editBookCommand;
-			_webSocketServer = webSocketServer;
+			//_webSocketServer = webSocketServer;
 			if (!Bloom.CLI.UploadCommand.IsUploading)
 				bookSelection.SelectionChanged += OnBookSelectionChanged;
 
@@ -89,7 +89,7 @@ namespace Bloom.CollectionTab
 					SafeInvoke.Invoke("sending reload status", this, false, true,
 						() =>
 						{
-							_webSocketServer.SendEvent("bookStatus", "reload");
+							//_webSocketServer.SendEvent("bookStatus", "reload");
 							SetEditButtonVisibility();
 						});
 				}
