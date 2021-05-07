@@ -44,6 +44,17 @@ $(document).ready(() => {
         }
     });
 
+    // $(".bloom-videoContainer video").each(function() {
+    //     const width = $(this)[0].offsetWidth;
+    //     const height = $(this)[0].offsetHeight;
+    //     alert("Width: " + width + ", Height: " + height);
+
+    //     $(".bloom-videoRecordedPlaceholder").each(function() {
+    //         $(this).width = `${width}px`;
+    //         $(this).height = `${height}px`;
+    //     }
+    // });
+
     //--------------------------------
     //keep divs vertically centered (yes, I first tried *all* the css approaches available at the time,
     // they didn't work for our situation). (2016)There may be more options nowadays.

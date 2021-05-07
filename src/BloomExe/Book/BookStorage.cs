@@ -859,7 +859,7 @@ namespace Bloom.Book
 			//Collect up all the image files in our book's directory
 			var imageFiles = new List<string>();
 			var imageExtentions = new HashSet<string>(new []{ ".jpg", ".png", ".svg" });
-			var ignoredFilenameStarts = new HashSet<string>(new [] { "thumbnail", "placeholder", "license", "video-placeholder", "coverImage200", "widget-placeholder" });
+			var ignoredFilenameStarts = new HashSet<string>(new [] { "thumbnail", "placeholder", "license", "video-placeholder", "video-recorded-placeholder", "coverImage200", "widget-placeholder" });
 			foreach (var path in Directory.EnumerateFiles(FolderPath).Where(
 				s => imageExtentions.Contains(Path.GetExtension(s).ToLowerInvariant())))
 			{
