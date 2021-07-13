@@ -376,14 +376,15 @@ namespace Bloom.Publish.Android
 			lock (_lockForLanguages)
 			{
 				_allLanguages = request.CurrentBook.AllPublishableLanguages(includeLangsOccurringOnlyInXmatter: true);
+
+				// Try not to avoid doing this if unnecessary.
+				// Note that at one point, whenever a check box changed, the whole Publish screen was regenerated (along with languagesInBook being retrieved again),
+				// but this is no longer the case.
 				if (_bookForLanguagesToPublish != request.CurrentBook)
 				{
 					// reinitialize our list of which languages to publish, defaulting to the ones
 					// that are complete.
 					// Enhance: persist this somehow.
-					// Currently the whole Publish screen is regenerated (and languagesInBook retrieved again)
-					// whenever a check box is changed, so it's very important not to do this set-to-default
-					// code when we haven't changed books.
 					_bookForLanguagesToPublish = request.CurrentBook;
 					_textLanguagesToPublish.Clear();
 					foreach (var kvp in _allLanguages)
@@ -396,11 +397,12 @@ namespace Bloom.Publish.Android
 							kvp.Key == request.CurrentCollectionSettings?.Language1Iso639Code)
 							_textLanguagesToPublish.Add(kvp.Key);
 					}
-
-					_languagesWithAudio = request.CurrentBook.GetLanguagesWithAudio();
-
-					_audioLanguagesToExclude.Clear();
 				}
+
+				// _languagesWithAudio is easier to change within the lifetime of the instance than _textLanguagesToPublish is,
+				// so gather this data again even if the book hasn't changed.
+				_languagesWithAudio = request.CurrentBook.GetLanguagesWithAudio();
+				_audioLanguagesToExclude.Clear();
 			}
 		}
 
