@@ -92,7 +92,7 @@ namespace Bloom.Publish.Android
 			{
 				// We need a copy of the hashset, so that if _languagesToPublish changes, this settings object won't.
 				LanguagesToInclude = new HashSet<string>(_textLanguagesToPublish),
-				AudioLanguagesToExclude = new HashSet<string>(_audioLanguagesToExclude)
+				AudioLanguagesToExclude = new HashSet<string>(_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader.Where(kvp => kvp.Value == LangToPublishCheckboxValue.Exclude).Select(kvp => kvp.Key))
 			};
 		}
 
@@ -300,16 +300,25 @@ namespace Bloom.Publish.Android
 				try
 				{
 					InitializeLanguagesInBook(request);
+
+					Dictionary<string, LangToPublishCheckboxValue> audioLangsToPublish = request.CurrentBook.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader;
+					
 					var result = "[" + string.Join(",", _allLanguages.Select(kvp =>
 					{
+						string langCode = kvp.Key;
+						if (audioLangsToPublish == null || !audioLangsToPublish.TryGetValue(langCode, out LangToPublishCheckboxValue includeAudioValue))
+						{
+							includeAudioValue = LangToPublishCheckboxValue.Default;
+						}
+
 						var value = new LanguagePublishInfo()
 						{
 							code = kvp.Key,
-							name = request.CurrentBook.PrettyPrintLanguage(kvp.Key),
+							name = request.CurrentBook.PrettyPrintLanguage(langCode),
 							complete = kvp.Value,
-							includeText = _textLanguagesToPublish.Contains(kvp.Key),
-							containsAnyAudio = _languagesWithAudio.Contains(kvp.Key),
-							includeAudio = !_audioLanguagesToExclude.Contains(kvp.Key)
+							includeText = _textLanguagesToPublish.Contains(langCode),
+							containsAnyAudio = _languagesWithAudio.Contains(langCode),							
+							includeAudio = includeAudioValue.ToString()
 						};
 						var json = JsonConvert.SerializeObject(value);
 						return json;
@@ -341,15 +350,18 @@ namespace Bloom.Publish.Android
 					// NOTE: If includeText is false, then we don't need the narration audio for it either.
 					// FYI, the check for includeText isn't strictly necessary... if the text is missing, the audio for it will get deleted too.
 					// But I think the values are more consistent by adding the includeText check.
-					var includeAudio = includeText && request.RequiredParam("includeAudio") == "true";
+					var includeAudio = includeText && request.RequiredParam("includeAudio") == LangToPublishCheckboxValue.Include.ToString();
+					Dictionary<string, LangToPublishCheckboxValue> audioLangsToPublish = request.CurrentBook.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader;
 					if (includeAudio)
 					{
-						_audioLanguagesToExclude.Remove(langCode);
+						audioLangsToPublish[langCode] = LangToPublishCheckboxValue.Include;
 					}
 					else
 					{
-						_audioLanguagesToExclude.Add(langCode);						
+						audioLangsToPublish[langCode] = LangToPublishCheckboxValue.Exclude;
 					}
+
+					request.CurrentBook.BookInfo.Save();	// We updated the BookInfo, so need to persist the changes. (but only the bookInfo is necessary, not the whole book)
 					request.PostSucceeded();
 				}
 				// We don't currently need a get...it's subsumed in the 'include' value returned from allLanguages...
@@ -402,7 +414,24 @@ namespace Bloom.Publish.Android
 				// _languagesWithAudio is easier to change within the lifetime of the instance than _textLanguagesToPublish is,
 				// so gather this data again even if the book hasn't changed.
 				_languagesWithAudio = request.CurrentBook.GetLanguagesWithAudio();
-				_audioLanguagesToExclude.Clear();
+
+				// Initialize the Talking Book Languages settings
+				// Precondition: Assumes BookInfo.MetaData is not null
+				if (_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish == null)
+				{
+					_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish = new LangsToPublishSetting();
+				}
+
+				if (_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader == null)
+				{
+					_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader = new Dictionary<string, LangToPublishCheckboxValue>();
+					var allLangCodes = _allLanguages.Select(x => x.Key);
+					foreach (var langCode in allLangCodes)
+					{
+						_bookForLanguagesToPublish.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader[langCode] = LangToPublishCheckboxValue.Default;
+					}
+					_bookForLanguagesToPublish.BookInfo.Save();
+				}
 			}
 		}
 

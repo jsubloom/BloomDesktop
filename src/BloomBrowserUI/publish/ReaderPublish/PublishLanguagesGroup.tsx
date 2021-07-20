@@ -14,7 +14,7 @@ export interface ILanguagePublishInfo {
     complete: boolean;
     includeText: boolean;
     containsAnyAudio: boolean;
-    includeAudio: boolean;
+    includeAudio: string;
 }
 
 class LanguagePublishInfo implements ILanguagePublishInfo {
@@ -23,7 +23,7 @@ class LanguagePublishInfo implements ILanguagePublishInfo {
     public complete: boolean;
     public includeText: boolean;
     public containsAnyAudio: boolean;
-    public includeAudio: boolean;
+    public includeAudio: string;
 
     public constructor(other?: ILanguagePublishInfo | undefined) {
         if (!other) {
@@ -39,6 +39,11 @@ class LanguagePublishInfo implements ILanguagePublishInfo {
             this.includeAudio = other.includeAudio;
         }
     }
+}
+
+function includeAudioToBool(includeAudioValue: string): boolean {
+    // Default should be treated same as Include
+    return includeAudioValue.toLowerCase() !== "exclude";
 }
 
 // Component that shows a check box for each language in the book, allowing the user to
@@ -91,7 +96,9 @@ export const PublishLanguagesGroup: React.FunctionComponent<{
             warnIncomplete: false, // Only show for text checkboxes
             isEnabled: item.includeText && item.containsAnyAudio,
             isChecked:
-                item.includeText && item.containsAnyAudio && item.includeAudio
+                item.includeText &&
+                item.containsAnyAudio &&
+                includeAudioToBool(item.includeAudio)
         };
     });
 
@@ -104,7 +111,16 @@ export const PublishLanguagesGroup: React.FunctionComponent<{
             langs.map(lang => {
                 if (lang.code === item.code) {
                     const newLangObj = new LanguagePublishInfo(lang);
-                    newLangObj[fieldToUpdate] = newState;
+
+                    // TODO: Clean up
+                    if (fieldToUpdate === "includeText") {
+                        newLangObj[fieldToUpdate] = newState;
+                    } else {
+                        // These correspond to the values in C#'s LangToPublishCheckboxValue
+                        newLangObj[fieldToUpdate] = newState
+                            ? "Include"
+                            : "Exclude";
+                    }
 
                     BloomApi.post(
                         `publish/android/includeLanguage?langCode=${newLangObj.code}&includeText=${newLangObj.includeText}&includeAudio=${newLangObj.includeAudio}`
@@ -133,7 +149,7 @@ export const PublishLanguagesGroup: React.FunctionComponent<{
                 onChange={(item, newState: boolean) => {
                     onLanguageUpdated(item, newState, "includeText");
                 }}
-            ></LanguageSelectionSettingsGroup>
+            />
             <LanguageSelectionSettingsGroup
                 label={useL10n(
                     "Talking Book Languages",
@@ -143,7 +159,7 @@ export const PublishLanguagesGroup: React.FunctionComponent<{
                 onChange={(item, newState: boolean) => {
                     onLanguageUpdated(item, newState, "includeAudio");
                 }}
-            ></LanguageSelectionSettingsGroup>
+            />
         </div>
     );
 };
