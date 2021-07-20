@@ -16,6 +16,6 @@ namespace Bloom.Publish
 		public Dictionary<string, LangToPublishCheckboxValue> ForBloomReader;	// The language codes of the languages that should be published when publishing for Bloom Reader
 
 		[JsonProperty("bloomLibrary")]
-		public string[] ForBloomLibrary;	// The language codes of the languages that should be published when publishing to Bloom Library
+		public Dictionary<string, LangToPublishCheckboxValue> ForBloomLibrary;	// The language codes of the languages that should be published when publishing to Bloom Library
 	}
 }

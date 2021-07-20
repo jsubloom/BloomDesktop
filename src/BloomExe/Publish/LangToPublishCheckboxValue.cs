@@ -16,4 +16,22 @@ namespace Bloom.Publish
 		Include,
 		Exclude
 	}
+
+	public static class LangToPublishCheckboxExtensions
+	{
+		public static bool? ToBoolOrNull(this LangToPublishCheckboxValue checkboxVal)
+		{
+			switch (checkboxVal)
+			{
+				case LangToPublishCheckboxValue.Exclude:
+					return false;
+				case LangToPublishCheckboxValue.Include:
+					return true;
+				case LangToPublishCheckboxValue.Default:
+					return null;
+				default:
+					throw new NotImplementedException("Unknown case: " + checkboxVal.ToString());
+			}
+		}
+	}
 }

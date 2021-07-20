@@ -301,24 +301,36 @@ namespace Bloom.Publish.Android
 				{
 					InitializeLanguagesInBook(request);
 
+					Dictionary<string, LangToPublishCheckboxValue> textLangsToPublish = request.CurrentBook.BookInfo.MetaData.TextLangsToPublish.ForBloomReader;
 					Dictionary<string, LangToPublishCheckboxValue> audioLangsToPublish = request.CurrentBook.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader;
 					
 					var result = "[" + string.Join(",", _allLanguages.Select(kvp =>
 					{
 						string langCode = kvp.Key;
+
+						if (textLangsToPublish == null || !textLangsToPublish.TryGetValue(langCode, out LangToPublishCheckboxValue includeTextValue))
+						{
+							includeTextValue = LangToPublishCheckboxValue.Default;
+						}
+						bool includeText = includeTextValue.ToBoolOrNull() ?? true;
+
 						if (audioLangsToPublish == null || !audioLangsToPublish.TryGetValue(langCode, out LangToPublishCheckboxValue includeAudioValue))
 						{
 							includeAudioValue = LangToPublishCheckboxValue.Default;
 						}
+						bool includeAudio =  includeAudioValue == LangToPublishCheckboxValue.Include || includeAudioValue == LangToPublishCheckboxValue.Default;
+
+						// TODO: Add note about why we convert Default into true here instead of in Typescript
+						// Who decides whether Default maps to true or to false?
 
 						var value = new LanguagePublishInfo()
 						{
 							code = kvp.Key,
 							name = request.CurrentBook.PrettyPrintLanguage(langCode),
 							complete = kvp.Value,
-							includeText = _textLanguagesToPublish.Contains(langCode),
+							includeText = includeText,
 							containsAnyAudio = _languagesWithAudio.Contains(langCode),							
-							includeAudio = includeAudioValue.ToString()
+							includeAudio = includeAudioValue.ToString()	// TOOD: Decide what to do with me
 						};
 						var json = JsonConvert.SerializeObject(value);
 						return json;
@@ -338,19 +350,19 @@ namespace Bloom.Publish.Android
 				if (request.HttpMethod == HttpMethods.Post)
 				{
 					var includeText = request.RequiredParam("includeText") == "true";
+					Dictionary<string, LangToPublishCheckboxValue> textLangsToPublish = request.CurrentBook.BookInfo.MetaData.TextLangsToPublish.ForBloomReader;
 					if (includeText)
 					{
 						_textLanguagesToPublish.Add(langCode);
+						textLangsToPublish[langCode] = LangToPublishCheckboxValue.Include;
 					}
 					else
 					{
 						_textLanguagesToPublish.Remove(langCode);
+						textLangsToPublish[langCode] = LangToPublishCheckboxValue.Exclude;
 					}
 
-					// NOTE: If includeText is false, then we don't need the narration audio for it either.
-					// FYI, the check for includeText isn't strictly necessary... if the text is missing, the audio for it will get deleted too.
-					// But I think the values are more consistent by adding the includeText check.
-					var includeAudio = includeText && request.RequiredParam("includeAudio") == LangToPublishCheckboxValue.Include.ToString();
+					var includeAudio = request.RequiredParam("includeAudio") == LangToPublishCheckboxValue.Include.ToString();
 					Dictionary<string, LangToPublishCheckboxValue> audioLangsToPublish = request.CurrentBook.BookInfo.MetaData.AudioLangsToPublish.ForBloomReader;
 					if (includeAudio)
 					{
@@ -389,25 +401,42 @@ namespace Bloom.Publish.Android
 			{
 				_allLanguages = request.CurrentBook.AllPublishableLanguages(includeLangsOccurringOnlyInXmatter: true);
 
-				// Try not to avoid doing this if unnecessary.
+				// Try to avoid doing this if unnecessary.
 				// Note that at one point, whenever a check box changed, the whole Publish screen was regenerated (along with languagesInBook being retrieved again),
 				// but this is no longer the case.
 				if (_bookForLanguagesToPublish != request.CurrentBook)
 				{
+					// TODO: Update this comment block
 					// reinitialize our list of which languages to publish, defaulting to the ones
 					// that are complete.
 					// Enhance: persist this somehow.
 					_bookForLanguagesToPublish = request.CurrentBook;
-					_textLanguagesToPublish.Clear();
-					foreach (var kvp in _allLanguages)
+					
+
+					if (_bookForLanguagesToPublish.BookInfo.MetaData.TextLangsToPublish == null)
 					{
-						if (kvp.Value ||
-							// We always select L1 by default because we assume the user wants to publish the language he is currently working on.
-							// It may be incomplete if he just wants to preview his work so far.
-							// If he really doesn't want to publish L1, he can deselect it.
-							// See BL-9587.
-							kvp.Key == request.CurrentCollectionSettings?.Language1Iso639Code)
-							_textLanguagesToPublish.Add(kvp.Key);
+						_bookForLanguagesToPublish.BookInfo.MetaData.TextLangsToPublish = new LangsToPublishSetting();
+					}
+
+					if (_bookForLanguagesToPublish.BookInfo.MetaData.TextLangsToPublish.ForBloomReader == null)
+					{
+						_bookForLanguagesToPublish.BookInfo.MetaData.TextLangsToPublish.ForBloomReader = new Dictionary<string, LangToPublishCheckboxValue>();
+						// TODO: Can we get rid of _textLanguagesToPublish?
+						_textLanguagesToPublish.Clear();
+						foreach (var kvp in _allLanguages)
+						{
+							var langCode = kvp.Key;
+							if (kvp.Value ||
+								// We always select L1 by default because we assume the user wants to publish the language he is currently working on.
+								// It may be incomplete if he just wants to preview his work so far.
+								// If he really doesn't want to publish L1, he can deselect it.
+								// See BL-9587.
+								langCode == request.CurrentCollectionSettings?.Language1Iso639Code)
+							{
+								_textLanguagesToPublish.Add(langCode);
+								_bookForLanguagesToPublish.BookInfo.MetaData.TextLangsToPublish.ForBloomReader[langCode] = LangToPublishCheckboxValue.Include;
+							}
+						}
 					}
 				}
 

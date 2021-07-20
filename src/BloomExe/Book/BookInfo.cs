@@ -1039,13 +1039,15 @@ namespace Bloom.Book
 		[JsonProperty("epub_RemoveFontStyles")]
 		public bool Epub_RemoveFontSizes;
 
-		// TODO: FIX ME
 		/// <summary>
-		/// This corresponds to a checkbox indicating that the user wants to use the eReader's native font styles.
+		/// This corresponds to the checkbox values of which languages the user wants to publish the text for
 		/// </summary>
 		[JsonProperty("textLangsToPublish")]
-		public string[] TextLangsToPublish { get; set; }
+		public LangsToPublishSetting TextLangsToPublish { get; set; }
 
+		/// <summary>
+		/// This corresponds to the checkbox values of which languages the user wants to publish the audio for
+		/// </summary>
 		[JsonProperty("audioLangsToPublish")]
 		public LangsToPublishSetting AudioLangsToPublish { get; set; }
 
