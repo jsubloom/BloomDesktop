@@ -77,10 +77,11 @@ namespace Bloom.Collection
 			this._teamCollectionTab = new System.Windows.Forms.TabPage();
 			this.reactControl1 = new Bloom.web.ReactControl();
 			this.tabPage4 = new System.Windows.Forms.TabPage();
-			this._allowTeamCollection = new System.Windows.Forms.CheckBox();
 			this.label2 = new System.Windows.Forms.Label();
 			this._automaticallyUpdate = new System.Windows.Forms.CheckBox();
 			this._showExperimentalBookSources = new System.Windows.Forms.CheckBox();
+			this._allowTeamCollection = new System.Windows.Forms.CheckBox();
+			this._allowSpreadsheetImportExport = new System.Windows.Forms.CheckBox();
 			this._okButton = new System.Windows.Forms.Button();
 			this._restartReminder = new System.Windows.Forms.Label();
 			this._L10NSharpExtender = new L10NSharp.UI.L10NSharpExtender(this.components);
@@ -722,10 +723,11 @@ namespace Bloom.Collection
 			// 
 			// tabPage4
 			// 
-			this.tabPage4.Controls.Add(this._allowTeamCollection);
-			this.tabPage4.Controls.Add(this.label2);
 			this.tabPage4.Controls.Add(this._automaticallyUpdate);
+			this.tabPage4.Controls.Add(this.label2);
 			this.tabPage4.Controls.Add(this._showExperimentalBookSources);
+			this.tabPage4.Controls.Add(this._allowTeamCollection);
+			this.tabPage4.Controls.Add(this._allowSpreadsheetImportExport);
 			this._L10NSharpExtender.SetLocalizableToolTip(this.tabPage4, null);
 			this._L10NSharpExtender.SetLocalizationComment(this.tabPage4, null);
 			this._L10NSharpExtender.SetLocalizingId(this.tabPage4, "CollectionSettingsDialog.AdvancedTab.AdvancedProgramSettingsTabLabel");
@@ -751,6 +753,21 @@ namespace Bloom.Collection
 			this._allowTeamCollection.Text = "Team Collection";
 			this._allowTeamCollection.UseVisualStyleBackColor = true;
 			this._allowTeamCollection.CheckedChanged += new System.EventHandler(this._allowTeamCollection_CheckedChanged);
+			// 
+			// _allowSpreadsheetImportExport
+			// 
+			this._allowSpreadsheetImportExport.AutoSize = true;
+			this._L10NSharpExtender.SetLocalizableToolTip(this._allowSpreadsheetImportExport, null);
+			this._L10NSharpExtender.SetLocalizationComment(this._allowSpreadsheetImportExport, null);
+			this._L10NSharpExtender.SetLocalizationPriority(this._allowSpreadsheetImportExport, L10NSharp.LocalizationPriority.Low);
+			this._L10NSharpExtender.SetLocalizingId(this._allowSpreadsheetImportExport, "CollectionSettingsDialog.AdvancedTab.Experimental.SpreadsheetImportExport");
+			this._allowSpreadsheetImportExport.Location = new System.Drawing.Point(27, 158);
+			this._allowSpreadsheetImportExport.Name = "_allowSpreadsheetImportExport";
+			this._allowSpreadsheetImportExport.Size = new System.Drawing.Size(124, 23);
+			this._allowSpreadsheetImportExport.TabIndex = 9;
+			this._allowSpreadsheetImportExport.Text = "Spreadsheet Import/Export";
+			this._allowSpreadsheetImportExport.UseVisualStyleBackColor = true;
+			this._allowSpreadsheetImportExport.CheckedChanged += new System.EventHandler(this._allowSpreadsheetImportExport_CheckedChanged);
 			// 
 			// label2
 			// 
@@ -969,6 +986,7 @@ namespace Bloom.Collection
 		private web.ReactControl reactControl1;
 		private Label label2;
 		private CheckBox _allowTeamCollection;
+		private CheckBox _allowSpreadsheetImportExport;
 		private Label _noRenameTeamCollectionLabel;
 	}
 }
