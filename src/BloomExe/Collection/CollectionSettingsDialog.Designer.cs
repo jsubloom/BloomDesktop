@@ -739,6 +739,51 @@ namespace Bloom.Collection
 			this.tabPage4.Text = "Advanced Program Settings";
 			this.tabPage4.UseVisualStyleBackColor = true;
 			// 
+			// _automaticallyUpdate
+			// 
+			this._automaticallyUpdate.AutoSize = true;
+			this._L10NSharpExtender.SetLocalizableToolTip(this._automaticallyUpdate, null);
+			this._L10NSharpExtender.SetLocalizationComment(this._automaticallyUpdate, null);
+			this._L10NSharpExtender.SetLocalizationPriority(this._automaticallyUpdate, L10NSharp.LocalizationPriority.Low);
+			this._L10NSharpExtender.SetLocalizingId(this._automaticallyUpdate, "CollectionSettingsDialog.AdvancedTab.AutoUpdate");
+			this._automaticallyUpdate.Location = new System.Drawing.Point(27, 24);
+			this._automaticallyUpdate.Name = "_automaticallyUpdate";
+			this._automaticallyUpdate.Size = new System.Drawing.Size(203, 23);
+			this._automaticallyUpdate.TabIndex = 5;
+			this._automaticallyUpdate.Text = "Automatically Update Bloom";
+			this._automaticallyUpdate.UseVisualStyleBackColor = true;
+			this._automaticallyUpdate.CheckedChanged += new System.EventHandler(this._automaticallyUpdate_CheckedChanged);
+			// 
+			// label2
+			// 
+			this.label2.AutoSize = true;
+			this.label2.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this._L10NSharpExtender.SetLocalizableToolTip(this.label2, null);
+			this._L10NSharpExtender.SetLocalizationComment(this.label2, null);
+			this._L10NSharpExtender.SetLocalizingId(this.label2, "CollectionSettingsDialog.AdvancedTab.ExperimentalFeaturesLabel");
+			this.label2.Location = new System.Drawing.Point(23, 70);
+			this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+			this.label2.Name = "label2";
+			this.label2.Size = new System.Drawing.Size(146, 19);
+			this.label2.TabIndex = 6;
+			this.label2.TabStop = false;	// Just in case. (Normally its constructor sets it to false already)
+			this.label2.Text = "Experimental Features";
+			// 
+			// _showExperimentalBookSources
+			// 
+			this._showExperimentalBookSources.AutoSize = true;
+			this._L10NSharpExtender.SetLocalizableToolTip(this._showExperimentalBookSources, null);
+			this._L10NSharpExtender.SetLocalizationComment(this._showExperimentalBookSources, null);
+			this._L10NSharpExtender.SetLocalizationPriority(this._showExperimentalBookSources, L10NSharp.LocalizationPriority.Low);
+			this._L10NSharpExtender.SetLocalizingId(this._showExperimentalBookSources, "CollectionSettingsDialog.AdvancedTab.Experimental.ShowExperimentalBookSources");
+			this._showExperimentalBookSources.Location = new System.Drawing.Point(27, 100);
+			this._showExperimentalBookSources.Name = "_showExperimentalBookSources";
+			this._showExperimentalBookSources.Size = new System.Drawing.Size(229, 23);
+			this._showExperimentalBookSources.TabIndex = 7;
+			this._showExperimentalBookSources.Text = "Show Experimental Book Sources";
+			this._showExperimentalBookSources.UseVisualStyleBackColor = true;
+			this._showExperimentalBookSources.CheckedChanged += new System.EventHandler(this._showExperimentalBookSources_CheckedChanged);
+			// 
 			// _allowTeamCollection
 			// 
 			this._allowTeamCollection.AutoSize = true;
@@ -768,51 +813,6 @@ namespace Bloom.Collection
 			this._allowSpreadsheetImportExport.Text = "Spreadsheet Import/Export";
 			this._allowSpreadsheetImportExport.UseVisualStyleBackColor = true;
 			this._allowSpreadsheetImportExport.CheckedChanged += new System.EventHandler(this._allowSpreadsheetImportExport_CheckedChanged);
-			// 
-			// label2
-			// 
-			this.label2.AutoSize = true;
-			this.label2.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this._L10NSharpExtender.SetLocalizableToolTip(this.label2, null);
-			this._L10NSharpExtender.SetLocalizationComment(this.label2, null);
-			this._L10NSharpExtender.SetLocalizingId(this.label2, "CollectionSettingsDialog.AdvancedTab.ExperimentalFeaturesLabel");
-			this.label2.Location = new System.Drawing.Point(23, 70);
-			this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-			this.label2.Name = "label2";
-			this.label2.Size = new System.Drawing.Size(146, 19);
-			this.label2.TabIndex = 6;
-			this.label2.TabStop = false;	// Just in case. (Normally its constructor sets it to false already)
-			this.label2.Text = "Experimental Features";
-			// 
-			// _automaticallyUpdate
-			// 
-			this._automaticallyUpdate.AutoSize = true;
-			this._L10NSharpExtender.SetLocalizableToolTip(this._automaticallyUpdate, null);
-			this._L10NSharpExtender.SetLocalizationComment(this._automaticallyUpdate, null);
-			this._L10NSharpExtender.SetLocalizationPriority(this._automaticallyUpdate, L10NSharp.LocalizationPriority.Low);
-			this._L10NSharpExtender.SetLocalizingId(this._automaticallyUpdate, "CollectionSettingsDialog.AdvancedTab.AutoUpdate");
-			this._automaticallyUpdate.Location = new System.Drawing.Point(27, 24);
-			this._automaticallyUpdate.Name = "_automaticallyUpdate";
-			this._automaticallyUpdate.Size = new System.Drawing.Size(203, 23);
-			this._automaticallyUpdate.TabIndex = 5;
-			this._automaticallyUpdate.Text = "Automatically Update Bloom";
-			this._automaticallyUpdate.UseVisualStyleBackColor = true;
-			this._automaticallyUpdate.CheckedChanged += new System.EventHandler(this._automaticallyUpdate_CheckedChanged);
-			// 
-			// _showExperimentalBookSources
-			// 
-			this._showExperimentalBookSources.AutoSize = true;
-			this._L10NSharpExtender.SetLocalizableToolTip(this._showExperimentalBookSources, null);
-			this._L10NSharpExtender.SetLocalizationComment(this._showExperimentalBookSources, null);
-			this._L10NSharpExtender.SetLocalizationPriority(this._showExperimentalBookSources, L10NSharp.LocalizationPriority.Low);
-			this._L10NSharpExtender.SetLocalizingId(this._showExperimentalBookSources, "CollectionSettingsDialog.AdvancedTab.Experimental.ShowExperimentalBookSources");
-			this._showExperimentalBookSources.Location = new System.Drawing.Point(27, 100);
-			this._showExperimentalBookSources.Name = "_showExperimentalBookSources";
-			this._showExperimentalBookSources.Size = new System.Drawing.Size(229, 23);
-			this._showExperimentalBookSources.TabIndex = 7;
-			this._showExperimentalBookSources.Text = "Show Experimental Book Sources";
-			this._showExperimentalBookSources.UseVisualStyleBackColor = true;
-			this._showExperimentalBookSources.CheckedChanged += new System.EventHandler(this._showExperimentalBookSources_CheckedChanged);
 			// 
 			// _okButton
 			// 
