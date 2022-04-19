@@ -48,6 +48,7 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
     format: string;
     onFormatChanged: (f: string) => void;
 }> = props => {
+    const [format, setFormat] = useState(props.format);
     const [isMp3Disabled, setIsMp3Disabled] = useState(false);
     const [tooBigMsg, setTooBigMsg] = useState("");
     // Manages visibility of the details popup for the main Format label (that shows in the
@@ -69,7 +70,7 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
         BloomApi.get("publish/av/tooBigForScreenMsg", c => {
             setTooBigMsg(c.data);
         });
-    }, [props.format]);
+    }, [format]);
 
     const formatItems: IFormatItem[] = [
         {
@@ -115,19 +116,20 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
 
     useEffect(() => {
         // Ensure selection is not disabled
-        if (isMp3Disabled && props.format === "mp3") {
+        if (isMp3Disabled && format === "mp3") {
             const firstNonDisabledFormat = formatItems
                 .map(x => x.format)
-                .find(f => props.format !== "mp3");
+                .find(f => f !== "mp3");
 
             if (firstNonDisabledFormat === undefined) {
                 // If for some weird reason, all formats are disabled, just leave it at whatever format was originally selected.
                 return;
             }
 
+            setFormat(firstNonDisabledFormat);
             props.onFormatChanged(firstNonDisabledFormat);
         }
-    }, [props.format, isMp3Disabled]);
+    }, [format, isMp3Disabled]);
 
     return (
         <SettingsGroup label={useL10n("Options", "Common.Options")}>
@@ -171,7 +173,7 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
                                             }
                                         }
                                     `}
-                                    value={props.format}
+                                    value={format}
                                     open={formatDropdownIsOpen}
                                     onOpen={() => {
                                         setFormatPopupAnchor(null);
@@ -183,6 +185,8 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
                                     onChange={e => {
                                         const newFormat = e.target
                                             .value as string;
+
+                                        setFormat(newFormat);
                                         props.onFormatChanged(newFormat);
                                     }}
                                     style={{ width: 160 }}
@@ -228,7 +232,7 @@ export const AudioVideoOptionsGroup: React.FunctionComponent<{
                          * Pages with background music but no narration are a trickier case. We think usually it won't be valuable to linger on them, but there could be some exceptions.
                          * For now, we're keeping it simple and immediately flipping those pages too.
                          */}
-                        {props.format !== "mp3" && (
+                        {format !== "mp3" && (
                             <div
                                 css={css`
                                     padding-right: 30px;
