@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using Bloom.Api;
 using Bloom.ErrorReporter;
@@ -187,63 +187,13 @@ namespace BloomTests.ErrorReporter
 		#endregion
 
 
-		#region SetNotifyUserOfProblemCustomParams tests
-
-		[TestCase("Report")]
-		[TestCase("CustomReport")]
-		public void NotifyUserOfProblem_ReportButton(string reportLabel)
-		{
-			var mockFactory = GetDefaultMockReactDialogFactory();
-			IBloomErrorReporter reporter = new HtmlErrorReporterBuilder()
-				.WithTestValues()
-				.BrowserDialogFactory(mockFactory.Object)
-				.Build();
-
-			// System Under Test
-			reporter.SetNotifyUserOfProblemCustomParams(reportLabel);
-			reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), new ApplicationException("fake exception"), "message");
-
-			mockFactory.Verify(x =>
-				x.CreateReactDialog(
-				It.Is<string>(b => b == "problemReportBundle"),
-					It.Is<object>(props => (string)props.GetType().GetProperty("level").GetValue(props) == ProblemLevel.kNotify &&
-						(string)props.GetType().GetProperty("reportLabel").GetValue(props) == reportLabel)
-				)
-			);
-		}
-
-		/// <summary>
-		/// Test the workaround for if you truly want it to say "Details"
-		/// </summary>
-		[Test]
-		public void SetNotifyUserOfProblemCustomParams_IfInstanceVarIsDetailsThenStaysDetails()
-		{
-			var mockFactory = GetDefaultMockReactDialogFactory();
-			IBloomErrorReporter reporter = new HtmlErrorReporterBuilder()
-				.WithTestValues()
-				.BrowserDialogFactory(mockFactory.Object)
-				.Build();
-
-			// System Under Test
-			reporter.SetNotifyUserOfProblemCustomParams(reportButtonLabel: "Details");
-			reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), null, "message");
-
-			// Verification
-			mockFactory.Verify(x =>
-				x.CreateReactDialog(
-					It.Is<string>(b => b == "problemReportBundle"),
-					It.Is<object>(props => (string)props.GetType().GetProperty("level").GetValue(props) == ProblemLevel.kNotify &&
-						(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "Details")
-				)
-			);
-		}
-
+		#region NotifyUserOfProblemCustom tests
 		[TestCase(null)]	// Tests that the report button label works even if exception is null)
 		[TestCase("fake exception")]
-		public void SetNotifyUserOfProblemCustomParams_ReportButtonPresent(string exceptionMessage)
+		public void NotifyUserOfProblemCustom_ShouldHideReportSetToDefault_ReportButtonPresent(string exceptionMessage)
 		{
 			var mockFactory = GetDefaultMockReactDialogFactory();
-			IBloomErrorReporter reporter = new HtmlErrorReporterBuilder()
+			var reporter = new HtmlErrorReporterBuilder()
 				.WithTestValues()
 				.BrowserDialogFactory(mockFactory.Object)
 				.Build();
@@ -251,33 +201,53 @@ namespace BloomTests.ErrorReporter
 			var exceptionOrNull = exceptionMessage != null ? new ApplicationException(exceptionMessage) : null;
 
 			// System Under Test
-			reporter.SetNotifyUserOfProblemCustomParams(reportButtonLabel: "CustomReport");
-			reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), exceptionOrNull, "message");
+			reporter.NotifyUserOfProblemCustom("message", exceptionOrNull);
 
 			// Verification
 			mockFactory.Verify(x => x.CreateReactDialog(
 				It.Is<string>(b => b == "problemReportBundle"),
 				It.Is<object>(props => (string)props.GetType().GetProperty("level").GetValue(props) == ProblemLevel.kNotify &&
-					(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "CustomReport")
+					(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "Report")
 			));
 		}
 
-		/// <summary>
-		/// Tests that the report button is disabled (set to ""), even if there is a non-null exception
-		/// </summary>
-		[Test]
-		public void SetNotifyUserOfProblemCustomParams_ReportButtonDisabled()
+		[TestCase(null)]    // Tests that the report button label works even if exception is null)
+		[TestCase("fake exception")]
+		public void NotifyUserOfProblemCustom_ShouldHideReportSetToFalse_ReportButtonPresent(string exceptionMessage)
 		{
 			var mockFactory = GetDefaultMockReactDialogFactory();
-			IBloomErrorReporter reporter = new HtmlErrorReporterBuilder()
+			var reporter = new HtmlErrorReporterBuilder()
 				.WithTestValues()
 				.BrowserDialogFactory(mockFactory.Object)
 				.Build();
 
+			var exceptionOrNull = exceptionMessage != null ? new ApplicationException(exceptionMessage) : null;
 
 			// System Under Test
-			reporter.SetNotifyUserOfProblemCustomParams(reportButtonLabel: "");
-			reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), new ApplicationException("fake exception"), "message");
+			reporter.NotifyUserOfProblemCustom("message", exceptionOrNull, shouldHideReportButton: false);
+
+			// Verification
+			mockFactory.Verify(x => x.CreateReactDialog(
+				It.Is<string>(b => b == "problemReportBundle"),
+				It.Is<object>(props => (string)props.GetType().GetProperty("level").GetValue(props) == ProblemLevel.kNotify &&
+					(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "Report")
+			));
+		}
+
+		[TestCase(null)]    // Tests that the report button label works even if exception is null)
+		[TestCase("fake exception")]
+		public void NotifyUserOfProblemCustom_ShouldHideReportSetToTrue_ReportButtonDisabled(string exceptionMessage)
+		{
+			var mockFactory = GetDefaultMockReactDialogFactory();
+			var reporter = new HtmlErrorReporterBuilder()
+				.WithTestValues()
+				.BrowserDialogFactory(mockFactory.Object)
+				.Build();
+
+			var exceptionOrNull = exceptionMessage != null ? new ApplicationException(exceptionMessage) : null;
+
+			// System Under Test
+			reporter.NotifyUserOfProblemCustom("message", exceptionOrNull, shouldHideReportButton: true);
 
 			// Verification
 			mockFactory.Verify(x => x.CreateReactDialog(
@@ -291,17 +261,16 @@ namespace BloomTests.ErrorReporter
 		/// Tests that you can use this function to add a secondary action button with the desired text
 		/// </summary>
 		[Test]
-		public void SetNotifyUserOfProblemCustomParams_SecondaryActionButtonLabel()
+		public void NotifyUserOfProblemCustom_SecondaryActionButtonLabel()
 		{
 			var mockFactory = GetDefaultMockReactDialogFactory();
-			IBloomErrorReporter reporter = new HtmlErrorReporterBuilder()
+			var reporter = new HtmlErrorReporterBuilder()
 				.WithTestValues()
 				.BrowserDialogFactory(mockFactory.Object)
 				.Build();
 
 			// System Under Test
-			reporter.SetNotifyUserOfProblemCustomParams(extraButtonLabel: "Retry");
-			reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), null, "message");
+			reporter.NotifyUserOfProblemCustom("message", extraButtonLabel: "Retry");
 
 			// Verification
 			mockFactory.Verify(x => x.CreateReactDialog(
@@ -312,7 +281,7 @@ namespace BloomTests.ErrorReporter
 		}
 
 		[Test]
-		public void SetNotifyUserOfProblemCustomParams_SecondaryActionAutoInvoked()
+		public void NotifyUserOfProblemCustom_SecondaryActionAutoInvoked()
 		{
 			// Simulate click on a button
 			var mockFactory = new Mock<IReactDialogFactory>();
@@ -330,7 +299,7 @@ namespace BloomTests.ErrorReporter
 				.Build();
 
 			_testValue = "";
-			Action<Exception, string> action = delegate (Exception e, string s)
+			Action<string, Exception> action = delegate (string s, Exception e)
 			{
 				_testValue = "Retry was pressed";
 			};
@@ -338,8 +307,7 @@ namespace BloomTests.ErrorReporter
 			try
 			{
 				// System Under Test
-				reporter.SetNotifyUserOfProblemCustomParams("", null, "Retry", action);
-				reporter.NotifyUserOfProblem(new ShowAlwaysPolicy(), null, "message");
+				reporter.NotifyUserOfProblemCustom("message", extraButtonLabel: "Retry", onExtraButtonClicked: action);
 
 				// Verification
 				Assert.AreEqual("Retry was pressed", _testValue);
@@ -352,7 +320,7 @@ namespace BloomTests.ErrorReporter
 		}
 		#endregion
 
-		#region Integration Tests with ErrorReportUtils
+		#region Integration Tests with BloomErrorReport
 		[Test]
 		public void IntegratationTestWithErrorReportUtils()
 		{
@@ -362,25 +330,26 @@ namespace BloomTests.ErrorReporter
 				.BrowserDialogFactory(mockFactory.Object)
 				.Build();
 
-			Bloom.Program.ErrorReporter = reporter;
+			var originalErrorReporter = ErrorReport.GetErrorReporter();
+			ErrorReport.SetErrorReporter(reporter);
 
 			try
 			{
 				// System Under Test
-				ErrorReportUtils.NotifyUserOfProblem("message", new ApplicationException("fake exception"), "CustomReport", null, "Retry", ErrorReportUtils.TestAction);
+				BloomErrorReport.NotifyUserOfProblemCustom("message", new ApplicationException("fake exception"), new ShowAlwaysPolicy(), false, "Retry", ErrorReportUtils.TestAction);
 
 				// Verification
 				mockFactory.Verify(x => x.CreateReactDialog(
 					It.Is<string>(b => b == "problemReportBundle"),
 					It.Is<object>(props => (string)props.GetType().GetProperty("level").GetValue(props) == ProblemLevel.kNotify &&
-						(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "CustomReport" &&
+						(string)props.GetType().GetProperty("reportLabel").GetValue(props) == "Report" &&
 						(string)props.GetType().GetProperty("secondaryLabel").GetValue(props) == "Retry" &&
 						(string)props.GetType().GetProperty("message").GetValue(props) == "message")
 				));
 			}
 			finally
 			{
-				ErrorReport.SetErrorReporter(null);
+				ErrorReport.SetErrorReporter(originalErrorReporter);
 			}
 		}
 		#endregion
