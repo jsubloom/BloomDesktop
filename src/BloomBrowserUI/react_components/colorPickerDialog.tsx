@@ -111,7 +111,7 @@ const ColorPickerDialog: React.FC<IColorPickerDialogProps> = props => {
         // If somehow something messes with color some other way, well, if the dialog is not
         // open I'm pretty sure the system won't set focus to one of its controls.
         return () => {
-            const inputs = Array.from(parent!.getElementsByTagName("input"));
+            const inputs = Array.from(parent.getElementsByTagName("input"));
             inputs.forEach(input =>
                 input.removeEventListener("focus", focusFunc)
             );

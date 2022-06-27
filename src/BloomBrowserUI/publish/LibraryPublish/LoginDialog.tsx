@@ -115,9 +115,13 @@ export const LoginDialog: React.FunctionComponent<{}> = props => {
                 const bucketName = getBucketName();
                 authResult.user.getIdToken().then(async (idToken: string) => {
                     try {
+                        if (bucketName === null) {
+                            throw new Error("BucketName is null.");
+                        }
+
                         await connectParseServer(
                             idToken,
-                            authResult.user.email!,
+                            authResult.user.email,
                             bucketName
                         );
                         // .then(result =>
@@ -169,7 +173,7 @@ export const LoginDialog: React.FunctionComponent<{}> = props => {
         if (done) {
             // This is a workaround to prevent a weird crash in GeckoFx when disposing of the browser.
             while (document.body.firstChild) {
-                document.body.removeChild(document.body.firstChild!);
+                document.body.removeChild(document.body.firstChild);
             }
             setTimeout(() => closeDialog(), 200);
         }
@@ -215,7 +219,7 @@ export const LoginDialog: React.FunctionComponent<{}> = props => {
 function getBucketName() {
     return new URLSearchParams(window.location.search.substring(1)).get(
         "bucket"
-    )!;
+    );
 }
 
 async function connectParseServer(
@@ -413,7 +417,12 @@ if (mode === "logout") {
         }
         const bucketName = getBucketName();
         user.getIdToken().then((idToken: string) => {
-            connectParseServer(idToken, user.email!, bucketName)
+            if (!user.email || !bucketName) {
+                closeDialog();
+                return;
+            }
+
+            connectParseServer(idToken, user.email, bucketName)
                 // .then(result =>
                 //     console.log("ConnectParseServer resolved with " + result)
                 // )

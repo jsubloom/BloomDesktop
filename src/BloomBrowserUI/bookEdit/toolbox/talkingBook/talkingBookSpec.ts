@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import TalkingBookTool from "./talkingBook";
 import {
     theOneAudioRecorder,

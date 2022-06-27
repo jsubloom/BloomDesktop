@@ -69,7 +69,7 @@ export const ProgressBox: React.FunctionComponent<IProgressBoxProps> = props => 
 
     React.useEffect(() => {
         if (bottomRef && bottomRef.current)
-            bottomRef!.current!.scrollIntoView({
+            bottomRef.current.scrollIntoView({
                 behavior: "smooth",
                 block: "start"
             });

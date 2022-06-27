@@ -75,8 +75,14 @@ export const InnerBulkBloomPubDialog: React.FunctionComponent<{
     // the server doesn't actually know the label for the bookshelf, just its urlKey. So we have to look that up ourselves.
     const bookshelfLabel = useGetLabelForCollection(bookshelfUrlKey, "");
     React.useEffect(() => {
+        if (!params) {
+            throw new Error(
+                "params was undefined, but expected to be non-null"
+            );
+        }
+
         if (bookshelfLabel) {
-            setParams({ ...params!, bookshelfLabel });
+            setParams({ ...params, bookshelfLabel });
         }
     }, [bookshelfLabel]);
 

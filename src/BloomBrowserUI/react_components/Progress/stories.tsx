@@ -61,13 +61,18 @@ function sendNextEvent(events: Array<IStoryMessage>) {
         return;
     }
     const e = events.shift();
+
+    if (!e) {
+        throw new Error("No events");
+    }
+
     WebSocketManager.mockSend<IBloomWebSocketProgressEvent>(
         kWebSocketMockContext,
         {
             clientContext: kWebSocketMockContext,
-            id: e!.id || "message",
-            progressKind: e!.k,
-            message: e!.m
+            id: e.id || "message",
+            progressKind: e.k,
+            message: e.m
         }
     );
 

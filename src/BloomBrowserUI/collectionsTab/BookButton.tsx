@@ -241,18 +241,35 @@ export const BookButton: React.FunctionComponent<{
             const s = window.getSelection();
             const r = document.createRange();
             r.selectNodeContents(p);
-            s!.removeAllRanges();
-            s!.addRange(r);
+
+            if (!s) {
+                // This isn't really supposed to happen, except in extremely corner cases that we don't expect to occur.
+                throw new Error("window.GetSelection returned null.");
+            }
+            s.removeAllRanges();
+            s.addRange(r);
             //
             window.setTimeout(() => {
                 // I tried the obvious approach of putting an onBlur in the JSX for the renameDiv,
                 // but it gets activated immediately, and I cannot figure out why.
                 renameDiv.current?.addEventListener("blur", () => {
-                    finishRename(renameDiv.current!.innerText);
+                    if (renameDiv.current) {
+                        finishRename(renameDiv.current.innerText);
+                    } else {
+                        // renameDiv.current should probably still be defined,
+                        // but add a backup handler in cases of a very unexpected change since the last time it was checked
+                        finishRename(undefined);
+                    }
                 });
                 renameDiv.current?.addEventListener("keypress", e => {
                     if (e.key === "Enter") {
-                        finishRename(renameDiv.current!.innerText);
+                        if (renameDiv.current) {
+                            finishRename(renameDiv.current.innerText);
+                        } else {
+                            // renameDiv.current should probably still be defined,
+                            // but add a backup handler in cases of a very unexpected change since the last time it was checked
+                            finishRename(undefined);
+                        }
                     } else if (e.key === "Escape") {
                         finishRename(undefined);
                     }
@@ -405,8 +422,8 @@ export const BookButton: React.FunctionComponent<{
                     onClose={handleClose}
                     anchorReference="anchorPosition"
                     anchorPosition={{
-                        top: contextMousePoint!.mouseY,
-                        left: contextMousePoint!.mouseX
+                        top: contextMousePoint.mouseY,
+                        left: contextMousePoint.mouseX
                     }}
                 >
                     {makeMenuItems(

@@ -610,7 +610,7 @@ const PublishAudioVideoInternalInternal: React.FunctionComponent<{
                         onMotionChange={m => {
                             setAvSettings({
                                 ...avSettings,
-                                motion: m!
+                                motion: m
                             });
                             // Will restart due to regenerating, we want the controls to show not playing.
                             pause();

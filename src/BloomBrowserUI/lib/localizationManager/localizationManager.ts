@@ -456,6 +456,7 @@ function HtmlDecode(text): string {
     div.innerHTML = text;
     if (text.indexOf("<") < 0) {
         // cheap decoding using built-in functionality
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return div.firstChild!.nodeValue!;
     }
     let retval = "";

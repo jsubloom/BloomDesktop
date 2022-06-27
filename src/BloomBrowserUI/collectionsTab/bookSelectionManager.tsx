@@ -21,11 +21,11 @@ export class BookSelectionManager {
             this.setSelectedBookInfo(response.data);
         });
         WebSocketManager.addListener("book-selection", e => {
-            if (e.id != "changed") {
+            if (e.id != "changed" || e.message === undefined) {
                 return;
             }
             this.setSelectedBookInfo(
-                JSON.parse(e.message!) as ISelectedBookInfo
+                JSON.parse(e.message) as ISelectedBookInfo
             );
         });
     };

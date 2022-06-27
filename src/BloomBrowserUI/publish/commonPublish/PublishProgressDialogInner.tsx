@@ -52,7 +52,7 @@ export const ProgressDialogInner: React.FunctionComponent<{
     useLayoutEffect(() => {
         window.setTimeout(() => {
             if (messageEndRef.current) {
-                messageEndRef.current!.scrollIntoView();
+                messageEndRef.current.scrollIntoView();
             }
         }, 100);
     }, [props.messages]); // do this every time the message text changes

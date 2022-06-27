@@ -14,7 +14,10 @@ export function getTestRoot() {
     elem = document.createElement("div");
     elem.id = kTestRoot;
 
-    const body = document.getElementsByTagName("body").item(0)!;
+    const body = document.getElementsByTagName("body").item(0);
+    if (!body) {
+        throw new Error("<body> element not found.");
+    }
 
     body.appendChild(elem);
     return elem;

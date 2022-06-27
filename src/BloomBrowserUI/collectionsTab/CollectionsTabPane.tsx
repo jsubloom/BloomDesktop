@@ -408,8 +408,8 @@ export const CollectionsTabPane: React.FunctionComponent<{}> = () => {
                     onClose={handleClose}
                     anchorReference="anchorPosition"
                     anchorPosition={{
-                        top: contextMousePoint!.mouseY,
-                        left: contextMousePoint!.mouseX
+                        top: contextMousePoint.mouseY,
+                        left: contextMousePoint.mouseX
                     }}
                 >
                     {collectionMenuItems}

@@ -45,7 +45,7 @@ const XmatterChooserControl: React.FunctionComponent = () => {
         displayName: string
     ): IXmatterInfo | undefined => {
         if (!xmatterData) return undefined;
-        return xmatterData!.find(xm => xm.displayName === displayName);
+        return xmatterData.find(xm => xm.displayName === displayName);
     };
 
     useEffect(() => {
@@ -84,15 +84,9 @@ const XmatterChooserControl: React.FunctionComponent = () => {
         ));
     };
 
-    const getSelectedIndex = (): number => {
-        return xmatterData!.findIndex(
-            xmatter => xmatter.internalName === selectedXmatter
-        );
-    };
-
-    const description = xmatterData
-        ? xmatterData[getSelectedIndex()].description
-        : "";
+    const description =
+        xmatterData?.find(xmatter => xmatter.internalName === selectedXmatter)
+            ?.description ?? "";
 
     return (
         <div
