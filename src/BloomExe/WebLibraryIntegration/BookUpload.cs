@@ -244,19 +244,29 @@ namespace Bloom.WebLibraryIntegration
 					// Do this after uploading the books, since the ThumbnailUrl is generated in the course of the upload.
 					if (!IsDryRun && !progress.CancelRequested)
 					{
-						var response = ParseClient.SetBookRecord(metadata.WebDataJson);
-						parseId = response.ResponseUri.LocalPath;
-						int index = parseId.LastIndexOf('/');
-						parseId = parseId.Substring(index + 1);
-						if (parseId == "books")
+						if (progress.CancelRequested)
 						{
-							// For NEW books the response URL is useless...need to do a new query to get the ID.
-							var json = ParseClient.GetSingleBookRecord(metadata.Id);
-							parseId = json.objectId.Value;
+							if (!UseSandbox)
+							{
+								Analytics.Track("UploadBook-Cancelled", new Dictionary<string, string>() { { "url", metadata.BookOrder }, { "title", metadata.Title } });
+							}
 						}
-						//   if (!UseSandbox) // don't make it seem like there are more uploads than their really are if this a tester pushing to the sandbox
+						else
 						{
-							Analytics.Track("UploadBook-Success", new Dictionary<string, string>() { { "url", metadata.BookOrder }, { "title", metadata.Title } });
+							var response = ParseClient.SetBookRecord(metadata.WebDataJson);
+							parseId = response.ResponseUri.LocalPath;
+							int index = parseId.LastIndexOf('/');
+							parseId = parseId.Substring(index + 1);
+							if (parseId == "books")
+							{
+								// For NEW books the response URL is useless...need to do a new query to get the ID.
+								var json = ParseClient.GetSingleBookRecord(metadata.Id);
+								parseId = json.objectId.Value;
+							}
+							//   if (!UseSandbox) // don't make it seem like there are more uploads than their really are if this a tester pushing to the sandbox
+							{
+								Analytics.Track("UploadBook-Success", new Dictionary<string, string>() { { "url", metadata.BookOrder }, { "title", metadata.Title } });
+							}
 						}
 					}
 				}

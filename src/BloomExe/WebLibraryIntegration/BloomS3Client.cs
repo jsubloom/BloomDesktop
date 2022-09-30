@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml;
 using Amazon.S3;
+using Amazon.S3.IO;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using Bloom.Book;
@@ -37,6 +38,7 @@ namespace Bloom.WebLibraryIntegration
 		public const string ProductionBucketName = "BloomLibraryBooks";
 		public const string ProblemBookUploadsBucketName = "bloom-problem-books";
 		public const string BloomDesktopFiles = "bloom-desktop-files";
+		private const int kS3BatchSize = 1000;
 
 		// Notice the optional "i".
 		// These file names are guids, and if the guid starts with a number, we prepend "i".
@@ -133,6 +135,119 @@ namespace Bloom.WebLibraryIntegration
 			return count;
 		}
 
+		private string ExtractTrailingFolderName(string s3Key)
+		{
+			// Note: Assumes s3key does not end with "/"... which, it never should.
+			Debug.Assert(!s3Key.EndsWith("/"), "s3Key must not end with \"/\". Received: " + s3Key);
+
+			return s3Key.Substring(s3Key.LastIndexOf("/") + 1);
+		}
+
+		/// <summary>
+		/// Generates the backup folder name.
+		/// </summary>
+		public string GetPathToBackupFolder(string keyOfBookFolder)
+		{
+			// Note: Since S3 operates using prefixes, you don't want two distinct "folders" to have a shared prefix.
+			// That'll give you more headache because they both match on the shorter prefix.
+			// Thus, ensuring the backup folder doesn't share a prefix with the original folder (or any other folder)
+			// keeps things from getting unnecessarily complicated.
+			// Summary: $"backups/{keyOfBookFolder}" is fine, $"{keyOfBookFolder}_backup" is problematic.
+			return $"backups/{keyOfBookFolder}";
+		}
+
+		public void BackupBookData(string bucketName, string originalBookFolderKey, IProgress progress)
+		{
+			// TODO: Write about how this function is non-cancellable
+			if (BookUpload.IsDryRun)
+				return;
+
+			
+			string backupFolderKey = GetPathToBackupFolder(originalBookFolderKey);
+
+			// Probably unnecessary because we try to delete these at the end,
+			// but let's just be really sure that we're starting with a clean backup folder
+			bool cleanDestination = true;
+
+			// ENHANCE: I get the feeling that this function is pretty slow.
+			// I bet it's because we move the files sequentially one-by-one (S3 doesn't offer bulk move or copy)
+			// We could do the moves multi-threaded (or multi-process, but that's probably too heavyweight)
+			// and it'd probably speed this up
+			MoveFolder(bucketName, originalBookFolderKey, backupFolderKey, cleanDestination, progress, "Backing up existing book data");			
+		}
+
+		public void MoveFolder(string bucketName, string sourceFolderKey, string destinationFolderKey, bool cleanDestinationFirst, IProgress progress = null, string progressMessage = null)
+		{
+			Debug.Assert(!destinationFolderKey.StartsWith(sourceFolderKey), "[MoveFolder] WARNING: sourceFolderKey should probably not be a substring of destinationFolderKey. Because S3 uses prefixes, the results may be easily mixed up since they share a common prefix!");
+
+			if (cleanDestinationFirst)
+			{
+				DeleteBookData(bucketName, destinationFolderKey);
+			}
+
+			var listMatchingObjectsRequest = new ListObjectsRequest()
+			{
+				BucketName = bucketName,
+				Prefix = sourceFolderKey
+			};
+
+			
+			bool isFirstPass = true;
+			var s3Client = GetAmazonS3(bucketName);			
+
+			ListObjectsResponse matchingFilesResponse;
+			do
+			{
+				// Note: ListObjects can only return 1,000 objects at a time,
+				//       So a loop is needed if the book contains 1,001+ objects.
+				matchingFilesResponse = s3Client.ListObjects(listMatchingObjectsRequest);
+				if (matchingFilesResponse.S3Objects.Count == 0)
+					return;
+
+				// Now we know that at least one object existed in the original book folder
+				if (isFirstPass && progress != null && progressMessage != null)
+				{
+					progress.WriteStatus(progressMessage);
+					isFirstPass = false;
+				}
+
+				// Unfortunately, while the SDK has batch delete, it doesn't provide batch move or batch copy,
+				// so move these files one-by-one.
+				matchingFilesResponse.S3Objects.ForEach((s3Object) => {
+					var fileInfo = new S3FileInfo(s3Client, bucketName, s3Object.Key);
+					var newKey = s3Object.Key.Replace(sourceFolderKey, destinationFolderKey);
+					fileInfo.MoveTo(bucketName, newKey);
+				});
+
+				// Prep the next request (if needed)
+				listMatchingObjectsRequest.Marker = matchingFilesResponse.NextMarker;
+			}
+			while (matchingFilesResponse.IsTruncated);	// Returns true if haven't reached the end yet
+
+			// FYI, there's no need to delete the source "folder" itself. It'll automatically be gone when the last item is removed.
+			// (It's not a real folder anyway)
+		}
+
+		/// <summary>
+		///
+		/// Note: The backup will be deleted as part of this operation
+		/// </summary>
+		/// <remarks></remarks>
+		/// <param name="bucketName"></param>
+		/// <param name="originalBookFolderKey"></param>
+		/// <param name="progress"></param>
+		public void RestoreBookDataFromBackup(string bucketName, string originalBookFolderKey, IProgress progress)
+		{
+			if (BookUpload.IsDryRun)
+				return;
+
+			string backupFolderKey = GetPathToBackupFolder(originalBookFolderKey);			
+			MoveFolder(bucketName, backupFolderKey, originalBookFolderKey, cleanDestinationFirst: true, progress, "Restoring book from backup");			
+		}
+
+		public void DeleteBookDataBackup(string bucketName, string keyOfBookFolder)
+			=> DeleteBookData(bucketName, GetPathToBackupFolder(keyOfBookFolder));
+
 		public void DeleteBookData(string bucketName, string key)
 		{
 			if (BookUpload.IsDryRun)
@@ -213,6 +328,7 @@ namespace Bloom.WebLibraryIntegration
 		{
 			BaseUrl = null;
 			BookOrderUrlOfRecentUpload = null;
+			BackupBookData(_bucketName, storageKeyOfBookFolder, progress);
 			DeleteBookData(_bucketName, storageKeyOfBookFolder); // In case we're overwriting, get rid of any deleted files.
 
 			//first, let's copy to temp so that we don't have to worry about changes to the original while we're uploading,
@@ -269,6 +385,15 @@ namespace Bloom.WebLibraryIntegration
 			UploadDirectory(prefix, wrapperPath, progress);
 
 			DeleteFileSystemInfo(new DirectoryInfo(wrapperPath));
+
+			if (progress.CancelRequested)
+			{
+				RestoreBookDataFromBackup(_bucketName, storageKeyOfBookFolder, progress);
+			}
+			else
+			{
+				DeleteBookDataBackup(_bucketName, storageKeyOfBookFolder);
+			}
 		}
 
 		private readonly static string[] validSubFolders = { "audio", "video", "activities", "template" };
