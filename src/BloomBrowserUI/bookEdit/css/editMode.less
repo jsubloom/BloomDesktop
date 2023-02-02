@@ -115,6 +115,18 @@ div.bloom-imageContainer {
     &.hasOverlay:not(.bloom-hideImageButtons) {
         .borderOnTopOfElement(@focusBorderColor);
     }
+
+    div.bloom-imageContainer > .ui-tooltipLayer {
+        z-index: @tooltipLayerZIndex;
+
+        // Makes it occupy the same space as its containing block (should be the bloom-imageContainer)
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0%;
+
+        opacity: 0; // Make it invisible. Not really necessary since it shouldn't have any content, but let's be sure.
+    }
 }
 
 // The editing buttons are hidden when this class is added (currently by motion and comic tools)
@@ -349,6 +361,12 @@ body:not(.origami-drag) .bloom-imageContainer.hoverUp {
     &.bloom-selected {
         border: solid 2px @bloom-yellow;
     }
+}
+.bloom-imageContainer.hoverUp .bloom-imageContainer .ui-tooltipLayer {
+    // If a parent imageContainer is being hovered (has .hoverUp),
+    // then find its descendant .bloom-imageContainers
+    // and disable their tooltips
+    pointer-events: none; // display: none works too.
 }
 .hoverUp .imageButton {
     border: 2px outset @ImageButtonBorder !important;

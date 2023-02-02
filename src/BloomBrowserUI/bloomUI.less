@@ -24,6 +24,9 @@
 // needs to be above overlay images so tails can cross into them
 @bubbleCanvasZIndex: @baseZIndexForContainers + 1;
 
+// needs to be above the canvas so that hover effects like the tooltip of overlay images will fire.
+@tooltipLayerZIndex: @bubbleCanvasZIndex + 1;
+
 // Above the canvas so they can be clicked
 @imageEditingButtonZIndex: @bubbleCanvasZIndex + 5;
 // And these are on top of those main buttons

@@ -13,6 +13,7 @@ import { theOneBubbleManager, updateOverlayClass } from "./bubbleManager";
 
 const kPlaybackOrderContainerSelector: string =
     ".bloom-playbackOrderControlsContainer";
+const kTooltipLayerClass = "ui-tooltipLayer";
 
 // This appears to be constant even on higher dpi screens.
 // (See http://www.w3.org/TR/css3-values/#absolute-lengths)
@@ -449,9 +450,27 @@ function UpdateImageTooltipVisibility(container: HTMLElement) {
 
         // If dataTitle is null for some unexpected reason, let's just leave the title unchanged.
         if (dataTitle !== null) {
-            container.title = dataTitle;
+            if (!IsOverlayImage(container)) {
+                // Normal case: main .bloom-imageContainer
+                container.title = dataTitle;
+            } else {
+                // Special case: Overlay image
+                let tooltipLayer = container.querySelector<HTMLElement>(
+                    `.${kTooltipLayerClass}`
+                );
+                if (!tooltipLayer) {
+                    tooltipLayer = document.createElement("div");
+                    tooltipLayer.classList.add(kTooltipLayerClass);
+                    container.appendChild(tooltipLayer);
+                }
+                tooltipLayer.title = dataTitle;
+            }
         }
     }
+}
+
+function IsOverlayImage(containerDiv: HTMLElement): boolean {
+    return !!containerDiv.parentElement?.closest(".bloom-imageContainer");
 }
 
 async function SetImageTooltip(container: HTMLElement) {
