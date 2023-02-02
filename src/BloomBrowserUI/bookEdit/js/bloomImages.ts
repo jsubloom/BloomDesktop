@@ -299,6 +299,19 @@ export function addImageEditingButtons(containerDiv: HTMLElement): void {
     }
 
     $containerDiv.addClass("hoverUp");
+
+    // Cleanup descendants
+    // We only want one set of image editing buttons to appear at once.
+    // Normally, this is accomplished
+    // TODO: Add explanation (if this works)
+    const descendantImageContainers = containerDiv.getElementsByClassName(
+        "bloom-imageContainer"
+    );
+    for (let i = 0; i < descendantImageContainers.length; ++i) {
+        const descendant = descendantImageContainers[i];
+        console.log("Cleaning up a descendant.");
+        removeImageEditingButtons(descendant);
+    }
 }
 
 /**
@@ -409,9 +422,19 @@ function SetupImageContainer(containerDiv: HTMLElement) {
 
     $(containerDiv)
         .mouseenter(function() {
+            if (IsOverlayImage(this)) {
+                console.log("Entered child.");
+            } else {
+                console.log("Entered parent.");
+            }
             addImageEditingButtons(this);
         })
         .mouseleave(function() {
+            if (IsOverlayImage(this)) {
+                console.log("Leaving child.");
+            } else {
+                console.log("Leaving parent.");
+            }
             removeImageEditingButtons(this);
         });
 }

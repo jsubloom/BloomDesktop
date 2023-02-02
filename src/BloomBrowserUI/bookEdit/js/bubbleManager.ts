@@ -1221,6 +1221,11 @@ export class BubbleManager {
             hoveredBubble.content === this.activeElement &&
             this.isPictureOverPictureElement(hoveredBubble.content)
         ) {
+            console.log(
+                "addImageEditingButtons in bubbleManager.ts:1224 fired."
+            );
+
+            // TODO: Is this thing still necessary? not sure when it fires though.
             // Make sure the image editing buttons are present as expected.
             // (It does not get them in the usual way by mouseEnter, because that event is
             // suppressed by the comicaljs canvas, which is above the image container.)

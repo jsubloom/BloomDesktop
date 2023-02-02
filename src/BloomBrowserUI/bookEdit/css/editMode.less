@@ -362,11 +362,16 @@ body:not(.origami-drag) .bloom-imageContainer.hoverUp {
         border: solid 2px @bloom-yellow;
     }
 }
-.bloom-imageContainer.hoverUp .bloom-imageContainer .ui-tooltipLayer {
-    // If a parent imageContainer is being hovered (has .hoverUp),
+
+// If a parent imageContainer is being hovered (has .hoverUp),
+.bloom-imageContainer.hoverUp {
     // then find its descendant .bloom-imageContainers
-    // and disable their tooltips
-    pointer-events: none; // display: none works too.
+    .bloom-imageContainer {
+        // and disable their tooltips
+        .ui-tooltipLayer {
+            pointer-events: none; // display: none works too.
+        }
+    }
 }
 .hoverUp .imageButton {
     border: 2px outset @ImageButtonBorder !important;
