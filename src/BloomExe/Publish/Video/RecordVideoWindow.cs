@@ -884,11 +884,6 @@ namespace Bloom.Publish.Video
 				if (_ffmpegPath == null)
 					_ffmpegPath = MiscUtils.FindFfmpegProgram();
 
-				if (args.Contains("filter_complex_script"))
-				{
-					Console.Out.WriteLine("Hello world.");
-				}
-
 				_ffmpegProcess = new Process
 				{
 					StartInfo =
