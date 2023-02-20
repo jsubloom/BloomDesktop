@@ -507,7 +507,12 @@ namespace Bloom.Publish.Video
 			var mergeErrors = _errorData.ToString();
 			if (!File.Exists(_finalVideo.Path) || new FileInfo(_finalVideo.Path).Length < 100)
 			{
+				// Failure - Log and abort.
 				Logger.WriteError(new ApplicationException(mergeErrors));
+				Logger.WriteEvent(PrettyPrintProcessStartInfo(_ffmpegProcess));
+				Logger.WriteEvent($"FFMPEG exit code: {_ffmpegProcess.ExitCode}");
+
+				// If you get this error, please check the logs above! You'll find the FFMPEG command, exit code, and output in the logs.
 				progress.MessageWithoutLocalizing("Merging audio and video failed", ProgressKind.Error);
 				_recording = false;
 				return;
@@ -737,6 +742,11 @@ namespace Bloom.Publish.Video
 						_ffmpegProcess.WaitForExit();
 
 						createEstimateTimer.Dispose();
+
+						if (_ffmpegProcess.ExitCode != 0)
+						{
+							Logger.WriteEvent("filter_complex_script contents: " + complexFilter);	// Write the temp file contents before it gets disposed
+						}
 					}
 				}
 
@@ -932,6 +942,8 @@ namespace Bloom.Publish.Video
 				throw;
 			}
 		}
+
+		private string PrettyPrintProcessStartInfo(Process process) => $"{process.StartInfo.WorkingDirectory}>{process.StartInfo.FileName} {process.StartInfo.Arguments}";
 
 		public bool AnyVideoHasAudio(string videoList, string basePath)
 		{
