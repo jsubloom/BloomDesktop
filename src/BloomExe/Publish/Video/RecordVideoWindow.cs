@@ -45,6 +45,7 @@ namespace Bloom.Publish.Video
 		private TempFile _capturedVideo;
 		private TempFile _finalVideo;
 		private bool _recording = true;
+		private int _numIterationsDone;		
 		private bool _saveReceived;
 		private Book.Book _book;
 		private string _pathToRealBook;
@@ -502,7 +503,7 @@ namespace Bloom.Publish.Video
 			}
 
 			// configure ffmpeg to merge everything.
-			MergeAudioFiles(progress, soundLog, haveVideo, finalOutputPath, videoDuration);
+			MergeAudioFilesInBatches(progress, soundLog, haveVideo, finalOutputPath, videoDuration);
 
 			var mergeErrors = _errorData.ToString();
 			if (!File.Exists(_finalVideo.Path) || new FileInfo(_finalVideo.Path).Length < 100)
@@ -513,6 +514,7 @@ namespace Bloom.Publish.Video
 				Logger.WriteEvent($"FFMPEG exit code: {_ffmpegProcess.ExitCode}");
 
 				// If you get this error, please check the logs above! You'll find the FFMPEG command, exit code, and output in the logs.
+				// Log location is in: %LocalAppData%\Temp\SIL\
 				progress.MessageWithoutLocalizing("Merging audio and video failed", ProgressKind.Error);
 				_recording = false;
 				return;
@@ -532,10 +534,17 @@ namespace Bloom.Publish.Video
 			progress.MessageWithParams("Common.FinishedAt", "{0:hh:mm tt} is a time", "Finished at {0:hh:mm tt}", ProgressKind.Progress, DateTime.Now);
 		}
 
-		private void MergeAudioFiles(IWebSocketProgress progress, SoundLogItem[] soundLog, bool haveVideo, string finalOutputPath, TimeSpan videoDuration)
+		private void MergeAudioFilesInBatches(IWebSocketProgress progress, SoundLogItem[] soundLog, bool haveVideo, string finalOutputPath, TimeSpan videoDuration)
 		{
+			// TODO:
+			// Goals:
+			//	1) If <=batchSize files, each audio file is encoded only once.
+			//	2) If there are exactly batchSize*batchSize audio files, the 1st input is encoded only twice or so.
+			// Optional Goals
+			//  3) Handle >= batchSize*batchSize audio files
+
 			progress.Message("PublishTab.RecordVideo.ProcessingAudio", message: "Processing audio");
-			
+
 
 			// In some very complex books, we are running into the 32K limit for the length of the args
 			// string that can be passed to Process.Start. We can put the complex_filter into a text file,
@@ -585,15 +594,110 @@ namespace Bloom.Publish.Video
 				}
 			}
 
-			// each sound file becomes an input by prefixing the path with -i.
-			var inputs = string.Join(" ", soundLog.Select(item => $"-i {item.shortName} "));
-
 			// Narration is never truncated, so always has a default endTime.
 			// If the last music ends up not being truncated (unlikely), I think we can let
 			// it play to its natural end. In this case pathologically we might fade some earlier music.
 			// But I think BP will currently put an end time on any music that didn't play to the end and
 			// then start repeating.
-			var lastMusic = soundLog.LastOrDefault(item => item.endTime != default(DateTime));
+			// TODO: maybe we should pass in soundLog as a List instead of an array.
+			var lastMusicIndex = soundLog.ToList().FindLastIndex(item => item.endTime != default(DateTime));
+			var lastMusic = lastMusicIndex >= 0 ? soundLog[lastMusicIndex] : default(SoundLogItem);
+
+			// TODO: Optional - Fiddle with batch size?
+			// Maybe if you save a partially recorded book, you can easily test with Stage 1 how
+			// big the batchSize can be. I think it's >= 1000 and <2500
+			//int batchSize = 1000;
+			int batchSize = 5;
+			int numIterationsNeeded = (int)Math.Ceiling(((float)soundLog.Length) / batchSize);
+			_numIterationsDone = 0;
+
+			var startTime = DateTime.Now;
+			// System.Threading.Timer is the only one which will fire during _ffmpegProcess.WaitForExit()
+			using (new System.Threading.Timer((state) =>
+				{
+					OutputStage1TimeRemainingEstimate(progress, startTime, numIterationsNeeded);
+				},
+				null,
+				5000, // initially at 5 seconds
+				300000 // then every 5 minutes thereafter
+			))
+			{
+				using (var tempFiles = new DisposableList<TempFile>())
+				{
+					// TODO: Optional - Think about how to handle when there are >= batchSize*batchSize input files.
+					// One option is it'd be nice if we could record immediately when there are more than that.
+					// However, it's not trivial to determine how many there are until bloom-player ends,
+					// at which point the user has already invested a ton of time.
+					// I think it may be less work to make this code handle n >= batchSize*batchSize
+					// than it is to give the user a friendly error message prior to them wasting hours or days or weeks of time.
+					for (int startIndex = 0; startIndex < soundLog.Length;  startIndex += batchSize, ++_numIterationsDone)
+					{
+						string destination;
+						bool isFinalIteration = startIndex + batchSize >= soundLog.Length;
+						if (isFinalIteration && !haveVideo)
+						{
+							// Special case - For the last iteration of audio only,
+							// write directly to the final output
+							destination = finalOutputPath;
+						}
+						else
+						{
+							// Normal case - Write to temp files
+
+							// TODO: Wait, this isn't right. Shouldn't this go to workingDir, instead of temp folder?
+							// Also, this should take another shortName.
+
+							// The extension should match what the final audio format should be, I think.
+							// For MP4 files, we're using aac in the final output, even though the inputs are .mp3 files
+							// TODO: How to handle the extension?
+							// I don't think the version of ffmpeg we built can handle .aac here. Or at least, .aac is problematic here for some reason or another.
+							var tempFile = BloomTemp.TempFileUtils.GetTempFileWithPrettyExtension(".mp3");
+							RobustFile.Delete(tempFile.Path);
+							tempFiles.Add(tempFile);
+							destination = tempFile.Path;
+						}
+
+						MergeAudioFiles(progress, soundLog, lastMusic, destination, workingDirectory/*, videoDuration*/);
+					}
+					// TODO: Now if tempFiles.Length > batchSize, recurse or while-loop or something until tempFiles.Length <= batchSize.
+					// Maybe you could use a while loop. The for loop should be adjusted to not use soundLog directly, but some kind of proxy to it.
+					// Then we should wipe the input to the for loop, populate it with the current contents of tempFile, and then clear the temp file.
+					// Except hmm, when the temp files get disposed now???
+					// Another complication, soundLog doesn't have the same type as the temp audio files.
+
+					if (haveVideo)
+					{
+						MergeAudioWithVideo(progress, tempFiles.Last().Path, haveVideo, finalOutputPath, workingDirectory, videoDuration);
+					}
+					else
+					{
+						// TODO: Make sure it gets to the finalOutputPath.
+					}
+				}
+			}
+
+			// Restore original names, since that's what is expected if we preview the book or record again
+			// (the html is still referencing the original names...the renaming was solely for the process
+			// of running ffmpeg afterwards.)
+			// If anything goes wrong so that this doesn't happen, we should automatically rebuild the
+			// preview entirely.
+			foreach (var kvp in renames)
+			{
+				RobustFile.Move(Path.Combine(workingDirectory,kvp.Value), kvp.Key);
+			}
+
+			LocalAudioNamesMessedUp = false;
+		}
+
+		private void MergeAudioFiles(IWebSocketProgress progress, IEnumerable<SoundLogItem> soundLog, SoundLogItem lastMusic, string outputPath, string workingDirectory/*, TimeSpan videoDuration*/)
+		{
+			// TODO: This function should be responsible for merging all the audio files into a single audio stream
+
+			var soundLogCount = soundLog.Count();
+
+			// each sound file becomes an input by prefixing the path with -i.
+			var inputs = string.Join(" ", soundLog.Select(item => $"-i {item.shortName} "));
+
 
 			// arguments to configure 'filters' ahead of audio mixer which will combine the sounds into a single stream.
 			var audioFilters = string.Join(" ", soundLog.Select((item, index) =>
@@ -643,9 +747,10 @@ namespace Bloom.Publish.Video
 			// quality somewhat if we could avoid decoding and re-encoding when there is no
 			// overlap.)
 			var mixInputs = string.Join("", soundLog.Select((item, index) => $"[a{index}]"));
-			// the video, if any, will be one more input after the audio ones and will be at this index
-			// in the inputs.
-			var videoIndex = soundLog.Length;
+
+			//// the video, if any, will be one more input after the audio ones and will be at this index
+			//// in the inputs.
+			//var videoIndex = soundLogCount;
 
 			string audioArgs;
 			switch (_codec)
@@ -663,7 +768,7 @@ namespace Bloom.Publish.Video
 					break;
 				case Codec.MP3:
 					audioArgs =
-						  "-acodec libmp3lame "
+							"-acodec libmp3lame "
 						+ "-b:a 64k ";  // Set the bitrate for the audio stream to 64 kbps
 						// For audio Sample Rate (-ar), I read suggestions to use 44.1 KHz stereo,
 						// unless the input source is 48KHz, in which just use that directly
@@ -676,42 +781,30 @@ namespace Bloom.Publish.Video
 			}
 
 			var complexFilter = audioFilters // specifies the inputs to the mixer
-			                    // mix those inputs to a single stream called out. Note that, because most of our audio
-			                    // streams don't overlap, and the background music volume is presumed to have already
-			                    // been suitably adjusted, we do NOT want the default behavior of 'normalizing' volume
-			                    // by reducing it to 1/n where n is the total number of input streams.
-			                    + mixInputs + $"amix=inputs={soundLog.Length}:normalize=0[out]";
+								// mix those inputs to a single stream called out. Note that, because most of our audio
+								// streams don't overlap, and the background music volume is presumed to have already
+								// been suitably adjusted, we do NOT want the default behavior of 'normalizing' volume
+								// by reducing it to 1/n where n is the total number of input streams.
+								+ mixInputs + $"amix=inputs={soundLogCount}:normalize=0[out]";
 			using (var filterFile = new TempFile(complexFilter)) {
 
 				using (var tempProgressOutputFile = TempFile.CreateAndGetPathButDontMakeTheFile())
 				{
 					var args = ""
-					           + inputs // the audio files are inputs, which may be referred to as [1:a], [2:a], etc.
-					           + (haveVideo
-						           ? $"-i \"{_videoOnlyPath}\" "
-						           : "") // last input (videoIndex) is the original video (if any)
-					           + "-filter_complex_script \"" // the next bit specifies a filter with multiple inputs
-					           + filterFile.Path + "\" "
-					           // copy the video channel (of input videoIndex) unchanged (if we have video).
-					           // (here 'copy' is a pseudo codec...instead of encoding it in some particular way,
-					           // we just copy the original.
-					           + (haveVideo ? $"-map {videoIndex}:v -vcodec copy " : "")
-
-					           + audioArgs
-					           + "-map [out] " // send the output of the audio mix to the output
-					           + finalOutputPath //and this is where we send it (until the user saves it elsewhere).
-					           + $" -progress {tempProgressOutputFile.Path}";
+					+ inputs // the audio files are inputs, which may be referred to as [1:a], [2:a], etc.
+								+ "-filter_complex_script \"" // the next bit specifies a filter with multiple inputs
+								+ filterFile.Path + "\" "
+								// copy the video channel (of input videoIndex) unchanged (if we have video).
+								// (here 'copy' is a pseudo codec...instead of encoding it in some particular way,
+								// we just copy the original.
+								
+								+ audioArgs
+								+ "-map [out] " // send the output of the audio mix to the output
+								+ outputPath //and this is where we send it (until the user saves it elsewhere).
+								+ $" -progress {tempProgressOutputFile.Path}";
 					// Debug.WriteLine("ffmpeg merge args: " + args);
 
-					if (haveVideo)
-						progress.MessageWithParams(
-							"PublishTab.RecordVideo.MergingAudioVideo",
-							"{0:hh:mm tt} is a time",
-							"Merging audio and video, starting at {0:hh:mm tt}",
-							ProgressKind.Progress,
-							DateTime.Now);
-					else
-						progress.Message("PublishTab.RecordVideo.FinalizingAudio", message: "Finalizing audio");
+					progress.Message("PublishTab.RecordVideo.FinalizingAudio", message: "Finalizing audio");
 
 					var startTimeForFinalMix = DateTime.Now;
 					// This magic number is documented at https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.processstartinfo.arguments?view=net-6.0
@@ -726,22 +819,7 @@ namespace Bloom.Publish.Video
 					{
 						RunFfmpeg(args, workingDirectory);
 
-						// System.Threading.Timer is the only one which will fire during _ffmpegProcess.WaitForExit()
-						var createEstimateTimer = new System.Threading.Timer((state) =>
-							{
-								if (_ffmpegExited) return;
-
-								OutputTimeRemainingEstimate(progress, tempProgressOutputFile, startTimeForFinalMix,
-									videoDuration);
-							},
-							null,
-							5000, // initially at 5 seconds
-							300000 // then every 5 minutes thereafter
-						);
-
 						_ffmpegProcess.WaitForExit();
-
-						createEstimateTimer.Dispose();
 
 						if (_ffmpegProcess.ExitCode != 0)
 						{
@@ -749,18 +827,112 @@ namespace Bloom.Publish.Video
 						}
 					}
 				}
+			}
+		}
 
-				// Restore original names, since that's what is expected if we preview the book or record again
-				// (the html is still referencing the original names...the renaming was solely for the process
-				// of running ffmpeg afterwards.)
-				// If anything goes wrong so that this doesn't happen, we should automatically rebuild the
-				// preview entirely.
-				foreach (var kvp in renames)
+		private void MergeAudioWithVideo(IWebSocketProgress progress, string audioFilePath, bool haveVideo, string finalOutputPath, string workingDirectory, TimeSpan videoDuration)
+		{
+			// TODO: All this needs to do is copy the audio stream and the video stream. Hopefully.
+			//       (like... literally, have ffmpeg copy it without re-encoding it using "-acodec copy" or something like that
+			// TODO: I think this should assume that video is always there. i.e. haveVideo won't even be necessary
+			// TODO: This could probably be simplified, but right now it's following a similar but simplified structure as the original code.
+			// TODO: Clean up unused parameters, re-decide parameter order
+
+			// each sound file becomes an input by prefixing the path with -i.
+			var inputs = $"-i {audioFilePath} ";
+
+			
+
+			// the video, if any, will be one more input after the audio ones and will be at this index
+			// in the inputs.
+			var videoIndex = 1;
+
+			string audioArgs;
+			switch (_codec)
+			{
+				case Codec.H263:
+					audioArgs = "-acodec aac -ar 8000 ";
+					break;
+				case Codec.H264:
+					// For MP4 videos, should we we specify MP3 for the SoundHandler instead of the ffmpeg's default SoundHandler, AAC?
+					// https://www.movavi.com/learning-portal/aac-vs-mp3.html says there is marginally more compatibility for mp3,
+					// but it's talking about audio files, not the audio codec within a mp4.
+					// https://stackoverflow.com/questions/9168954/should-i-use-the-mp3-or-aac-codec-for-a-mp4-file/25718378)
+					// has ambiguous answers, but we decided in favor of AAC (the default).
+					//audioArgs = "";
+					audioArgs = "-map 0:a -acodec copy ";
+					break;
+				case Codec.MP3:
+					audioArgs =
+						  "-acodec libmp3lame "
+						+ "-b:a 64k ";  // Set the bitrate for the audio stream to 64 kbps
+						// For audio Sample Rate (-ar), I read suggestions to use 44.1 KHz stereo,
+						// unless the input source is 48KHz, in which just use that directly
+						// (for radio-level, you can use 22.05 kHz mono)
+						// I see ffmpeg default produce a lot of 44.1 KHz results, which is perfectly adequate if it keeps up.
+						// Just leaving it as the default unless need shows otherwise
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+
+			using (var tempProgressOutputFile = TempFile.CreateAndGetPathButDontMakeTheFile())
+			{
+				var args = ""
+				+ inputs // the audio files are inputs, which may be referred to as [1:a], [2:a], etc.
+					        + (haveVideo
+						        ? $"-i \"{_videoOnlyPath}\" "
+						        : "") // last input (videoIndex) is the original video (if any)
+					        // copy the video channel (of input videoIndex) unchanged (if we have video).
+					        // (here 'copy' is a pseudo codec...instead of encoding it in some particular way,
+					        // we just copy the original.
+					        + (haveVideo ? $"-map {videoIndex}:v -vcodec copy " : "")
+
+					        + audioArgs
+					        //+ "-map [out] " // send the output of the audio mix to the output
+					        + finalOutputPath //and this is where we send it (until the user saves it elsewhere).
+					        + $" -progress {tempProgressOutputFile.Path}";
+				// Debug.WriteLine("ffmpeg merge args: " + args);
+
+				if (haveVideo)
+					progress.MessageWithParams(
+						"PublishTab.RecordVideo.MergingAudioVideo",
+						"{0:hh:mm tt} is a time",
+						"Merging audio and video, starting at {0:hh:mm tt}",
+						ProgressKind.Progress,
+						DateTime.Now);
+				else
+					progress.Message("PublishTab.RecordVideo.FinalizingAudio", message: "Finalizing audio");
+
+				var startTimeForFinalMix = DateTime.Now;
+				// This magic number is documented at https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.processstartinfo.arguments?view=net-6.0
+				if (args.Length >= 32699)
 				{
-					RobustFile.Move(Path.Combine(workingDirectory,kvp.Value), kvp.Key);
+					// This API requires a localization ID, but as we hope no one will ever see it, I'm not actually
+					// adding it to the XLF.
+					progress.Message("PublishTab.RecordVideo.TooManyAudioFiles",
+						"This recording has more audio files than Bloom can handle. Try recording the book in smaller sections. You can then join the sections using some other video software.", ProgressKind.Error);
 				}
+				else
+				{
+					RunFfmpeg(args, workingDirectory);
 
-				LocalAudioNamesMessedUp = false;
+					// System.Threading.Timer is the only one which will fire during _ffmpegProcess.WaitForExit()
+					using (new System.Threading.Timer((state) =>
+						{
+							if (_ffmpegExited) return;
+
+							OutputStage2TimeRemainingEstimate(progress, tempProgressOutputFile, startTimeForFinalMix,
+								videoDuration);
+						},
+						null,
+						5000, // initially at 5 seconds
+						300000 // then every 5 minutes thereafter
+					))
+					{
+						_ffmpegProcess.WaitForExit();
+					}
+				}
 			}
 		}
 
@@ -781,7 +953,31 @@ namespace Bloom.Publish.Video
 			return result;
 		}
 
-		private void OutputTimeRemainingEstimate(IWebSocketProgress progress, TempFile progressFile, DateTime startTime, TimeSpan totalDuration)
+		private void OutputStage1TimeRemainingEstimate(IWebSocketProgress progress, DateTime startTime, int totalIterationsNeeded)
+		{
+			try
+			{
+				double iterationsSoFar = _numIterationsDone;
+				var timeSoFar = DateTime.Now - startTime;
+
+				double timePerIterationSoFar = timeSoFar.TotalMilliseconds / iterationsSoFar;
+				var iterationsRemaining = totalIterationsNeeded - iterationsSoFar;
+				if (iterationsRemaining < 1) return;
+
+				var estimatedTimeRemaining = timePerIterationSoFar * iterationsRemaining;
+				//Debug.WriteLine($"totalIterations:{totalIterationsNeeded}, iterationsSoFar:{iterationsSoFar}, iterationsRemaining:{iterationsRemaining}");
+				//Debug.WriteLine($"timeSoFar:{timeSoFar}, timePerIterationSoFar:{timePerIterationSoFar}");
+				//Debug.WriteLine($"estimatedTimeRemaining:{estimatedTimeRemaining}");
+
+				progress.MessageWithoutLocalizing($"- {GetEstimateMessageFromMillis(estimatedTimeRemaining)}");
+			}
+			catch (Exception e)
+			{
+				MiscUtils.SuppressUnusedExceptionVarWarning(e);
+			}
+		}
+
+		private void OutputStage2TimeRemainingEstimate(IWebSocketProgress progress, TempFile progressFile, DateTime startTime, TimeSpan totalDuration)
 		{
 			try
 			{

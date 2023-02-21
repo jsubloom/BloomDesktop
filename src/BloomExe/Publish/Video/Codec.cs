@@ -33,8 +33,32 @@ namespace Bloom.Publish.Video
 				case Codec.MP3:
 					return ".mp3";
 				default:
-					throw new NotImplementedException($"CodecToExtension for codec {codec.ToString()} is not supported yet");
+					throw new NotImplementedException($"Codec.ToExtension for codec {codec.ToString()} is not supported yet");
 			}
 		}
+
+		// TODO: Cleanup if not needed.
+		///// <summary>
+		///// Returns the default audio extension Bloom will use for this codec
+		///// If the codec is a video, returns the extension for the audio component of the video
+		///// </summary>
+		///// <remarks>If the calling code wants to use an alternate extension/file type, that's fine; the caller should just manually determine it instead of using the results of this function.</remarks>
+		///// <param name="codec"></param>
+		///// <returns>The extension, including the leading period. Example: "mp4"</returns>
+		///// <exception cref="NotImplementedException"></exception>
+		//public static string ToAudioExtension(this Codec codec)
+		//{
+		//	switch (codec)
+		//	{
+		//		case Codec.H263:
+		//			return ".3gp";
+		//		case Codec.H264:
+		//			return ".aac";
+		//		case Codec.MP3:
+		//			return ".mp3";
+		//		default:
+		//			throw new NotImplementedException($"Codec.ToAudioExtension for codec {codec.ToString()} is not supported yet");
+		//	}
+		//}
 	}
 }
