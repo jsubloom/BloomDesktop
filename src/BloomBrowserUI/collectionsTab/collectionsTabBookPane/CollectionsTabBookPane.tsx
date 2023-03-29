@@ -2,7 +2,7 @@
 import { jsx, css } from "@emotion/react";
 import * as React from "react";
 import { useRef, useState } from "react";
-import { get, getBoolean } from "../../utils/bloomApi";
+import { get, getBoolean, postThatMightNavigate } from "../../utils/bloomApi";
 import { TeamCollectionBookStatusPanel } from "../../teamCollection/TeamCollectionBookStatusPanel";
 import {
     IBookTeamCollectionStatus,
@@ -18,6 +18,9 @@ import { LocalizedString } from "../../react_components/l10nComponents";
 import { CollectionHistoryTable } from "../../teamCollection/CollectionHistoryTable";
 import "react-tabs/style/react-tabs.less";
 import { BloomTabs } from "../../react_components/BloomTabs";
+import { ProgressDialog } from "../../react_components/Progress/ProgressDialog";
+import { useL10n } from "../../react_components/l10nHooks";
+import { BloomButtonWithProgress } from "../../react_components/bloomButtonWithProgress";
 
 export const CollectionsTabBookPane: React.FunctionComponent<{
     // If false, as it usually is, the overlay above the preview iframe
@@ -119,45 +122,112 @@ export const CollectionsTabBookPane: React.FunctionComponent<{
     // Note: If canMakeBook is true, then saveable is probably false (the source book is likely not in the editable collection),
     // but you still want the button to be enabled
     const isButtonEnabled = canMakeBook || saveable;
+    const clickApiEndpoint = canMakeBook
+        ? "app/makeFromSelectedBook"
+        : "app/editSelectedBook";
+
+    // const showProgress = useRef<() => void | undefined>();
+    // const closeProgress = useRef<() => void | undefined>();
+    const longRunningOperationText = useL10n(
+        "This may take a while...",
+        "Common.LongRunningOperation"
+    );
+    // const editOrMakeProgress = (
+    //     <ProgressDialog
+    //         title={longRunningOperationText}
+    //         determinate={false}
+    //         size="small"
+    //         showCancelButton={false}
+    //         setShowDialog={showFunc => (showProgress.current = showFunc)}
+    //         setCloseDialog={closeFunc => (closeProgress.current = closeFunc)}
+    //     />
+    // );
+
+    // const editOrMakeButton: JSX.Element | boolean = collectionKind !==
+    //     "error" && (
+    //     <BloomButton
+    //         enabled={isButtonEnabled}
+    //         variant={"outlined"}
+    //         l10nKey={
+    //             canMakeBook
+    //                 ? "CollectionTab.MakeBookUsingThisTemplate"
+    //                 : "CollectionTab.EditBookButton"
+    //         }
+    //         onClick={async () => {
+    //             setTimeout(() => {
+    //                 showProgress.current?.();
+    //             }, 2000);
+    //             await postThatMightNavigate(clickApiEndpoint);
+    //             closeProgress.current?.();
+    //         }}
+    //         enabledImageFile={
+    //             canMakeBook
+    //                 ? "/bloom/images/New Book.svg"
+    //                 : "/bloom/images/EditTab.svg"
+    //         }
+    //         disabledImageFile={
+    //             canMakeBook ? undefined : "/bloom/images/EditTab.svg"
+    //         }
+    //         hasText={true}
+    //         color="secondary"
+    //         css={css`
+    //             background-color: white !important;
+    //             color: ${isButtonEnabled
+    //                 ? "black"
+    //                 : "rgba(0, 0, 0, 0.26)"} !important;
+    //             img {
+    //                 height: 2em;
+    //                 margin-right: 10px;
+    //             }
+    //         `}
+    //     >
+    //         {canMakeBook ? "Make a book using this source" : "Edit this book"}
+    //     </BloomButton>
+    // );
+
     const editOrMakeButton: JSX.Element | boolean = collectionKind !==
         "error" && (
-        <BloomButton
-            enabled={isButtonEnabled}
-            variant={"outlined"}
-            l10nKey={
-                canMakeBook
+        <BloomButtonWithProgress
+            buttonProps={{
+                enabled: isButtonEnabled,
+                variant: "outlined",
+                l10nKey: canMakeBook
                     ? "CollectionTab.MakeBookUsingThisTemplate"
-                    : "CollectionTab.EditBookButton"
-            }
-            clickApiEndpoint={
-                canMakeBook
-                    ? "app/makeFromSelectedBook"
-                    : "app/editSelectedBook"
-            }
-            mightNavigate={true}
-            enabledImageFile={
-                canMakeBook
+                    : "CollectionTab.EditBookButton",
+                clickApiEndpoint,
+                mightNavigate: true,
+                enabledImageFile: canMakeBook
                     ? "/bloom/images/New Book.svg"
-                    : "/bloom/images/EditTab.svg"
-            }
-            disabledImageFile={
-                canMakeBook ? undefined : "/bloom/images/EditTab.svg"
-            }
-            hasText={true}
-            color="secondary"
-            css={css`
-                background-color: white !important;
-                color: ${isButtonEnabled
-                    ? "black"
-                    : "rgba(0, 0, 0, 0.26)"} !important;
-                img {
-                    height: 2em;
-                    margin-right: 10px;
-                }
-            `}
-        >
-            {canMakeBook ? "Make a book using this source" : "Edit this book"}
-        </BloomButton>
+                    : "/bloom/images/EditTab.svg",
+
+                disabledImageFile: canMakeBook
+                    ? undefined
+                    : "/bloom/images/EditTab.svg",
+
+                hasText: true,
+                color: "secondary",
+                css: css`
+                    background-color: white !important;
+                    color: ${isButtonEnabled
+                        ? "black"
+                        : "rgba(0, 0, 0, 0.26)"} !important;
+                    img {
+                        height: 2em;
+                        margin-right: 10px;
+                    }
+                `,
+                children: canMakeBook
+                    ? "Make a book using this source"
+                    : "Edit this book"
+            }}
+            progressDialogProps={{
+                title: longRunningOperationText,
+                determinate: false,
+                size: "small",
+                showCancelButton: false
+            }}
+            delayInMilliseconds={5000}
+        />
     );
 
     return (
@@ -308,6 +378,7 @@ export const CollectionsTabBookPane: React.FunctionComponent<{
                         </TabPanel>
                     )}
                 </BloomTabs>
+                {/* {editOrMakeProgress} */}
             </div>
             {// Currently, canMakeBook is a synonym for 'book is not in the current TC'
             // If that stops being true we might need another more specialized status flag.

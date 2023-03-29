@@ -514,6 +514,21 @@ export function post(
     );
 }
 
+// Pretty much the same as post but using Promise-based or async/await syntax instead of callback syntax
+export function postAsync<T>(
+    urlSuffix: string
+): Promise<void | AxiosResponse<T>> {
+    if ((window as any).__karma__) {
+        console.log(`skipping post to ${urlSuffix} because in unit tests`);
+        return Promise.resolve();
+    }
+
+    return wrapAxios<T>(
+        // leave failure unhandled
+        axios.post<T>(getBloomApiPrefix() + urlSuffix)
+    );
+}
+
 // Do a post (like duplicate page) that might result in navigating the browser
 // containing the code that calls post. This messes up the network connection
 // and results in spurious network errors being reported.
@@ -525,7 +540,10 @@ export function post(
 export function postThatMightNavigate(urlSuffix: string) {
     // The internal catch should suppress any errors. In case that fails (which it has), passing
     // false to wrapAxios further suppresses any error reporting.
-    wrapAxios(axios.post(getBloomApiPrefix() + urlSuffix).catch(), false);
+    return wrapAxios(
+        axios.post(getBloomApiPrefix() + urlSuffix).catch(),
+        false
+    );
 }
 
 // This method is used to post something from Bloom with data.

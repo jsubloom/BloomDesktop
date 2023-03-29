@@ -226,6 +226,7 @@ export const BookButton: React.FunctionComponent<{
             {
                 label: "Make a book using this source",
                 l10nId: "CollectionTab.MakeBookUsingThisTemplate",
+                // TODO: Address me too.
                 command: "app/makeFromSelectedBook",
                 // Allowed for the downloaded books collection and the editable collection (provided the book is checked out, if applicable)
                 shouldShow: () =>
