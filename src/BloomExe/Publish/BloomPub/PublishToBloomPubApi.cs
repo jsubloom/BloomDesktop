@@ -99,7 +99,6 @@ namespace Bloom.Publish.BloomPub
 			{
 #if !__MonoCS__
 				SetState("UpdatingPreview");
-				_publishApi.UpdatePreviewIfNeeded(request);
 				// In 5.6, we should consider removing this UpdatePreviewIfNeeded line as it does not
 				// currently appear to be accomplishing anything. Also in "wifi/start" and 
 				// "file/save" endpoints below.

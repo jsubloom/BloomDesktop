@@ -129,9 +129,9 @@ const ReaderPublishScreenInternal: React.FunctionComponent<{
                     setClosePending(true);
                     break;
                 case "UpdatingPreview":
-                    setProgressState(ProgressState.Working);
                     setClosePending(false);
                     setHeading(publishing);
+                    setProgressState(ProgressState.Working);
                     break;
                 case "UsbStarted":
                     setClosePending(false);
