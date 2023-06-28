@@ -23,7 +23,7 @@ namespace Bloom.MiscUI
 
 		private static readonly List<ReactDialog> _activeDialogs = new List<ReactDialog>();
 
-		public ReactDialog(string javascriptBundleName, object props = null, string taskBarTitle="Bloom")
+		public ReactDialog(string javascriptBundleName, object props = null, string taskBarTitle = "Bloom", bool showInTaskbar = false)
 		{
 			InitializeComponent();
 			FormClosing += ReactDialog_FormClosing;
@@ -32,7 +32,7 @@ namespace Bloom.MiscUI
 			reactControl.Props = props;
 			_activeDialogs.Add(this);
 			Text = taskBarTitle;
-			ShowInTaskbar = false;
+			ShowInTaskbar = showInTaskbar;
 
 			Icon = global::Bloom.Properties.Resources.BloomIcon;
 		}

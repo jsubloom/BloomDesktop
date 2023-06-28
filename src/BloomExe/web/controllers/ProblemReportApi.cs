@@ -514,7 +514,7 @@ namespace Bloom.web.controllers
 					}
 
 					// Precondition: we must be on the UI thread for Gecko to work.
-					using (var dlg = new ReactDialog( "problemReportBundle", new { level = levelOfProblem}, "Problem Report"))
+					using (var dlg = new ReactDialog( "problemReportBundle", new { level = levelOfProblem}, taskBarTitle: "Problem Report", showInTaskbar: true))
 					{
 						_additionalPathsToInclude = additionalPathsToInclude;
 						dlg.FormBorderStyle = FormBorderStyle.FixedToolWindow; // Allows the window to be dragged around
@@ -529,11 +529,10 @@ namespace Bloom.web.controllers
 						try
 						{
 							// Keep dialog on top of program window if possible.  See https://issues.bloomlibrary.org/youtrack/issue/BL-10292.
-							dlg.ShowDialog(Shell.GetShellOrOtherOpenForm());
-							//if (controlForScreenshotting is Bloom.Shell)
-							//	dlg.ShowDialog(controlForScreenshotting);
-							//else
-							//	dlg.ShowDialog();
+							if (controlForScreenshotting is Bloom.Shell)
+								dlg.ShowDialog(controlForScreenshotting);
+							else
+								dlg.ShowDialog();
 						}
 						finally
 						{
