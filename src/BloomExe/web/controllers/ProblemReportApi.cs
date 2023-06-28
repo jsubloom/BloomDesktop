@@ -529,10 +529,11 @@ namespace Bloom.web.controllers
 						try
 						{
 							// Keep dialog on top of program window if possible.  See https://issues.bloomlibrary.org/youtrack/issue/BL-10292.
-							if (controlForScreenshotting is Bloom.Shell)
-								dlg.ShowDialog(controlForScreenshotting);
-							else
-								dlg.ShowDialog();
+							dlg.ShowDialog(Shell.GetShellOrOtherOpenForm());
+							//if (controlForScreenshotting is Bloom.Shell)
+							//	dlg.ShowDialog(controlForScreenshotting);
+							//else
+							//	dlg.ShowDialog();
 						}
 						finally
 						{
